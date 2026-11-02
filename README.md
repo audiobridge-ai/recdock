@@ -1,2 +1,89 @@
-# recdock
+# RecDock
+
 A local Bluetooth recorder workspace with support for PLAUD devices, featuring device status monitoring, recording downloads, and audio conversion.
+
+RecDock is an independent client. It is not affiliated with or endorsed by PLAUD.
+
+## Features
+
+- Email/password sign-in or user-initiated import of an official Web session.
+- Account-bound device cards and a single Connect action that prepares authentication material automatically.
+- Automatic protocol detection from advertisements, with a macOS bridge when browser advertisement access is unavailable.
+- Device overview with recording status, battery and storage information.
+- Recording lists, Bluetooth downloads, cancellation and same-page resume.
+- Local recovery of supported encrypted recordings and WAV or Ogg export.
+- Remembered login, device mappings and export preferences, with historical account keys retained for older recordings.
+
+## Requirements
+
+- Node.js **22.18 or newer** and npm.
+- A desktop Chrome or Edge version with Web Bluetooth support, opened through `localhost` or HTTPS.
+- A supported recorder bound to your own PLAUD account.
+- **macOS** for the native broadcast and persistent-cache helpers, with Swift available through Xcode or Apple's Command Line Tools.
+
+The complete workflow currently targets macOS. Support depends on the device and firmware. Automatic preparation covers legacy protocols and protocol 20; protocol 30 currently requires existing ECC credentials through advanced diagnostics.
+
+## Quick start
+
+```sh
+git clone https://github.com/audiobridge-ai/recdock.git
+cd recdock
+npm ci
+npm run dev
+```
+
+Open **http://localhost:5173/** and keep the local server running.
+
+1. Disconnect the recorder from the phone App and keep it awake near the computer.
+2. Sign in with the same account that owns the device, or import an official Web session using the instructions in the page.
+3. Select your device card and click **Connect**. Confirm the browser device selection and any system Bluetooth permission request.
+4. RecDock identifies the protocol, reuses or prepares authentication material, and connects automatically. You do not need to enter a protocol version or separately approve RSA preparation.
+5. Use the overview and recording-file tabs to inspect the device and download recordings.
+
+The device cards show account-bound devices, not a live list of nearby Bluetooth devices. The browser's initial device-selection permission is still required. Previously authorized devices can be reused when the browser supports it.
+
+## Login and local data
+
+The local server sends account and material-preparation requests to restricted official PLAUD HTTPS API hosts. After preparation, BLE authentication, state updates and recording transfers operate locally. Recording audio is processed on your computer and is not uploaded by RecDock.
+
+Passwords are cleared after submission and are not persisted. With remembered login enabled, access/refresh tokens and authentication material are saved in an AES-256-GCM file cache. The random encryption key and encrypted data are stored in a directory restricted to the current OS user; the key is not protected independently by Keychain. RecDock does not request a Keychain password.
+
+For compatibility with existing installations, the macOS cache lives at:
+
+```text
+~/Library/Application Support/PLAUD BLE Workspace/
+```
+
+Browser IndexedDB stores only non-secret device mappings and export preferences. Ordinary logout removes saved login authorization while retaining historical recording keys. The explicit local-data removal action deletes that account's saved material and may prevent recovery of older recordings.
+
+Cloud-session restoration verifies the account identity. Supported password sessions can refresh their tokens; imported Web sessions may require another import when their token expires. A bounded offline restore can reuse previously verified account and complete device material. It does not replace initial account authentication.
+
+## Recordings and export
+
+The default export format is **WAV**, with **Ogg** available as a smaller alternative. Supported `PLAUD.AI` recordings are decrypted locally with the corresponding account RSA material before audio packaging. Existing downloaded files can be recovered through the recording-file tab.
+
+Unknown formats, unsupported multistream layouts or unavailable original keys leave the original `.bin` intact. Renaming a file extension does not convert it. WAV conversion currently accepts compressed inputs up to 16 MiB; Bluetooth downloads have a 256 MiB per-file limit.
+
+Incomplete transfers are kept only in page memory for the same account, device and file. They may resume after cancellation or disconnection, but refreshing or closing the page discards them. Recording or pause defers file synchronization.
+
+## Development
+
+```sh
+npm test
+npm run build
+npm run preview
+```
+
+The initial implementation passes **236 tests**, TypeScript checks and a production build on macOS. FFmpeg is optional and enables independent audio interoperability tests. See [development notes](docs/development.md) and [protocol notes](docs/protocol.md).
+
+Both development and preview commands provide the loopback-only local API. The `dist/` directory contains only the frontend; hosting it alone does not provide login, native detection or the local-cache API. Keep the same `localhost` origin to preserve browser device permissions and mappings.
+
+`localhost refused to connect` usually means the local server is not running or the address/port is incorrect. The UI and API share the same origin; disabling browser CORS protections is unnecessary.
+
+## Scope
+
+RecDock currently focuses on already-bound devices, status monitoring and recording retrieval. It does not implement new-device binding, unbinding, recording start/stop control, device-file deletion, OTA or Wi-Fi transfers. Device and firmware behavior still needs hardware validation beyond the synthetic test suite.
+
+## License
+
+[MIT](LICENSE)

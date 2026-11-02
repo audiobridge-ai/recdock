@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+<key>CFBundleIdentifier</key><string>local.plaud.ble-workspace.scanner</string>
+<key>CFBundleName</key><string>PLAUD 设备识别</string>
+<key>CFBundleDisplayName</key><string>PLAUD 设备识别</string>
+<key>CFBundleExecutable</key><string>BroadcastScanner</string>
+<key>CFBundlePackageType</key><string>APPL</string>
+<key>CFBundleVersion</key><string>1</string>
+<key>LSUIElement</key><true/>
+<key>NSBluetoothAlwaysUsageDescription</key><string>读取你选择的 PLAUD 设备广播，自动识别连接协议，无需手动填写技术参数。</string>
+</dict></plist>

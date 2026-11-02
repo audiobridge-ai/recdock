@@ -1,0 +1,33 @@
+{
+  "name": "recdock",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "scripts": {
+    "dev": "vite --host localhost",
+    "build": "tsc --noEmit && vite build",
+    "test": "node --experimental-strip-types --test tests/*.test.ts",
+    "preview": "vite preview --host localhost"
+  },
+  "dependencies": {
+    "@noble/ciphers": "2.4.0",
+    "@noble/curves": "2.4.0",
+    "node-forge": "1.4.2"
+  },
+  "devDependencies": {
+    "@types/node": "22.19.15",
+    "@types/node-forge": "1.3.14",
+    "@types/web-bluetooth": "0.0.22",
+    "typescript": "5.9.3",
+    "vite": "8.3.5"
+  },
+  "description": "A local Bluetooth recorder workspace with support for PLAUD devices, featuring device status monitoring, recording downloads, and audio conversion.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/audiobridge-ai/recdock.git"
+  }
+}

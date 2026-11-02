@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="zh-CN"><meta charset="UTF-8"><title>PLAUD 广播过滤诊断</title>
+<style>body{font:16px system-ui;max-width:900px;margin:48px auto;padding:24px}button{padding:12px;margin:8px}pre{white-space:pre-wrap}h1{font-size:24px}</style>
+<h1>PLAUD 广播过滤诊断</h1><p>对比浏览器对厂商数据与广播前缀的支持情况。只选择设备，不自动建立 GATT 连接。</p>
+<button id="company">仅 Nordic 厂商编号</button><button id="note">Nordic + Note 产品号</button><button id="normal">完整 PLAUD 广播过滤</button><button id="all">全部 BLE 设备</button>
+<pre id="log" role="status"></pre>
+<script type="module">
+import { discoveryOptions } from './src/ble/discovery.ts';
+const log = document.querySelector('#log');
+for (const mode of ['company', 'note', 'normal', 'all']) document.querySelector('#' + mode).onclick = async () => {
+  const options = discoveryOptions(mode === 'all');
+  if (mode === 'company') options.filters = [{manufacturerData:[{companyIdentifier:89}]}];
+  if (mode === 'note') options.filters = [{manufacturerData:[{companyIdentifier:89,dataPrefix:Uint8Array.of(2,120,3)}]}];
+  log.textContent = '扫描模式：' + mode;
+  try { const device = await navigator.bluetooth.requestDevice(options); log.textContent += '\n已选择：' + (device.name || '未命名') + '\n广播读取接口：' + typeof device.watchAdvertisements; }
+  catch (error) { log.textContent += '\n' + error.name + ': ' + error.message; }
+};
+</script></html>

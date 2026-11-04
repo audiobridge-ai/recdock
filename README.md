@@ -14,6 +14,7 @@ RecDock is an independent client. It is not affiliated with or endorsed by PLAUD
 - A unified recording list, Bluetooth downloads, cancellation and same-page resume.
 - Explicit **Download and transcribe** or **Download Ogg only** actions; discovering or importing a file does not implicitly start transcription.
 - Offline local transcription, speaker labels, timestamp playback, revision editing and automatic readable transcript files.
+- One-click ChatGPT delivery of the complete saved transcript through an optional Edge extension, with one bound tab, submission receipts and duplicate protection.
 - Local recovery of supported encrypted recordings and WAV or Ogg export.
 - Remembered login, device mappings and export preferences, with historical account keys retained for older recordings.
 
@@ -53,7 +54,7 @@ The device cards show account-bound devices, not a live list of nearby Bluetooth
 
 ## Login and local data
 
-The local server sends account and material-preparation requests to restricted official PLAUD HTTPS API hosts. After preparation, BLE authentication, state updates and recording transfers operate locally. Recording audio is processed on your computer and is not uploaded by RecDock.
+The local server sends account and material-preparation requests to restricted official PLAUD HTTPS API hosts. After preparation, BLE authentication, state updates and recording transfers operate locally. Recording audio is processed on your computer. When you explicitly send a transcript to ChatGPT, its complete text and your prompt are uploaded to the ChatGPT page you connected; audio is not included.
 
 Passwords are cleared after submission and are not persisted. With remembered login enabled, access/refresh tokens and authentication material are saved in an AES-256-GCM file cache. The random encryption key and encrypted data are stored in a directory restricted to the current OS user; the key is not protected independently by Keychain. RecDock does not request a Keychain password.
 
@@ -79,6 +80,12 @@ Unknown formats, unsupported multistream layouts or unavailable original keys le
 
 Incomplete transfers are kept only in page memory for the same account, device and file. They may resume after cancellation or disconnection, but refreshing or closing the page discards them. Recording or pause defers file synchronization.
 
+## Send a transcript to ChatGPT
+
+Load the [optional Edge extension](extensions/chatgpt-bridge/README.md), refresh the workspace, then connect an existing signed-in ChatGPT tab under **Settings → ChatGPT delivery**. Select a completed transcript and click **Send to ChatGPT**. The full saved version is attached as Markdown, including paragraphs hidden by search or pagination. Save or cancel pending edits first.
+
+The extension reuses one bound tab and processes one task at a time. A confirmed submission becomes **Open ChatGPT**; repeated clicks open the existing conversation. Login, drafts, upload limits or page changes pause the task and offer manual export. The automation limit is 8 MiB per Markdown file; files are never truncated. A submission receipt does not imply cross-conversation retrieval or memory storage. See the [delivery notes](docs/chatgpt-forward-delivery.md).
+
 ## Development
 
 ```sh
@@ -87,7 +94,7 @@ npm run build
 npm run preview
 ```
 
-The current workflow passes **308 JavaScript tests**, **39 Python tests**, TypeScript checks and a production build on this Mac. FFmpeg is required for the recording library and local processing, and also enables independent audio interoperability tests. See [development notes](docs/development.md) and [protocol notes](docs/protocol.md).
+The current JavaScript suite passes **323 tests**, TypeScript checks and a production build on this Mac. The unchanged Python worker baseline previously passed **39 tests**. FFmpeg is required for the recording library and local processing, and also enables independent audio interoperability tests. See [development notes](docs/development.md) and [protocol notes](docs/protocol.md).
 
 Both development and preview commands provide the loopback-only local API. The `dist/` directory contains only the frontend; hosting it alone does not provide login, native detection or the local-cache API. Keep the same `localhost` origin to preserve browser device permissions and mappings.
 
@@ -95,7 +102,7 @@ Both development and preview commands provide the loopback-only local API. The `
 
 ## Scope
 
-RecDock currently focuses on already-bound devices, status monitoring, recording retrieval and local transcript review. One-click ChatGPT delivery is deferred. It does not implement new-device binding, unbinding, recording start/stop control, device-file deletion, OTA or Wi-Fi transfers. Device and firmware behavior still needs hardware validation beyond the synthetic test suite.
+RecDock currently focuses on already-bound devices, status monitoring, recording retrieval, local transcript review and optional ChatGPT delivery. It does not implement new-device binding, unbinding, recording start/stop control, device-file deletion, OTA or Wi-Fi transfers. Device and firmware behavior still needs hardware validation beyond the synthetic test suite.
 
 ## License
 

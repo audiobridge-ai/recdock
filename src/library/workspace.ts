@@ -8,13 +8,15 @@ import type { TransferStatus } from '../ui/recordings.ts';
 import { transferView } from '../ui/recordings.ts';
 import { formatBytes } from '../protocol/status.ts';
 import { deviceRecordingTitle, recordingTitle } from './recording-title.ts';
+import { ChatGPTForwarder } from '../chatgpt/forwarder.ts';
+import type { ForwardBridge } from '../chatgpt/forwarder.ts';
 
 export interface DeviceWorkspaceState { deviceId?: string; name: string; connected: boolean; canDownload: boolean; busy: boolean; status: string; duration: string; battery?: number; files: RecordingFile[]; transfer: TransferStatus; hint: string }
 export interface DownloadOptions { transcribe: boolean; language: 'zh' | 'en' }
 export interface AccountWorkspaceState { authenticated: boolean; restoring: boolean; accountId?: string; email?: string; busy: boolean; connecting: boolean; error?: string }
 type Scope = 'personal' | 'account';
 type ScopedRecordingRow = RecordingRow & { scope: Scope };
-interface WorkspaceOptions { parent: HTMLElement; onVisibility: (visible: boolean) => void; onDownload?: (sessionId: number, options: DownloadOptions) => Promise<void>; onCancelDownload?: () => void; onRefreshDevice?: () => void; onOpenSettings?: () => void; onOpenDevice?: () => void; onDisconnectDevice?: () => void; onSwitchDevice?: () => void; onLogout?: () => void; onEnvironment?: (environment: LibraryEnvironment) => void };
+interface WorkspaceOptions { parent: HTMLElement; onVisibility: (visible: boolean) => void; onDownload?: (sessionId: number, options: DownloadOptions) => Promise<void>; onCancelDownload?: () => void; onRefreshDevice?: () => void; onOpenSettings?: (section?: 'chatgpt') => void; onOpenDevice?: () => void; onDisconnectDevice?: () => void; onSwitchDevice?: () => void; onLogout?: () => void; onEnvironment?: (environment: LibraryEnvironment) => void; chatgptBridge?: ForwardBridge };
 const menus = [['device-menu', 'device-settings'], ['account-menu', 'account-menu'], ['import-menu', 'import-menu'], ['filter-menu', 'filter-menu']] as const;
 
 const stageNames: Record<string, string> = { preparing: '检查与解码', transcribing: '转写文字', aligning: '对齐时间', diarizing: '区分讲话人', merging: '合并全文', exporting: '生成导出' };
@@ -60,6 +62,7 @@ export class LibraryWorkspace {
   private importingWithTranscription = true;
   private language: 'zh' | 'en' = 'zh';
   private options: WorkspaceOptions;
+  private forwarder: ChatGPTForwarder;
   constructor(options: WorkspaceOptions) {
     this.options = options;
     this.client = new LibraryClient();
@@ -70,11 +73,12 @@ export class LibraryWorkspace {
     this.root.innerHTML = workspaceMarkup;
     this.field('source').value = this.sourceFilter;
     options.parent.append(this.root);
+    this.forwarder = new ChatGPTForwarder(this.client, () => this.renderForward(), options.chatgptBridge);
     this.entry = el('button', 'text-button library-entry', '录音'); this.entry.id = 'open-library'; this.entry.type = 'button';
     document.querySelector('.topbar')?.insertBefore(this.entry, document.querySelector('.local-badge')); this.entry.onclick = () => { void this.open(); };
     this.bind();
     window.addEventListener('beforeunload', event => { if (this.editing) { event.preventDefault(); event.returnValue = ''; } });
-    window.addEventListener('pagehide', () => { clearTimeout(this.timer); clearTimeout(this.noticeTimer); });
+    window.addEventListener('pagehide', () => { clearTimeout(this.timer); clearTimeout(this.noticeTimer); this.forwarder.select(); });
     window.addEventListener('pageshow', () => { if (this.visible) this.schedule(); });
   }
   private view<T extends HTMLElement = HTMLElement>(name: string) { return this.root.querySelector<T>(`[data-view="${name}"]`)!; }
@@ -100,7 +104,7 @@ export class LibraryWorkspace {
     try { await this.refreshContext(); await this.refresh(); if (!this.importing) this.notice('录音、全文与已保存的修改都保存在本机。'); }
     catch (e) { this.failure(e); } finally { this.schedule(); }
   }
-  close() { if (!this.discard()) return false; this.visible = false; this.root.hidden = true; this.entry.removeAttribute('aria-current'); clearTimeout(this.timer); clearTimeout(this.noticeTimer); this.audio().pause(); this.onVisibility(false); return true; }
+  close() { if (!this.discard()) return false; this.visible = false; this.root.hidden = true; this.entry.removeAttribute('aria-current'); clearTimeout(this.timer); clearTimeout(this.noticeTimer); this.forwarder.select(); this.audio().pause(); this.onVisibility(false); return true; }
   private get accountAvailable() { return !!this.context?.accountAvailable && (!this.accountState || this.accountState.authenticated || this.accountState.restoring); }
   private async refreshContext() {
     const previousIdentity = this.context?.identity;
@@ -110,7 +114,7 @@ export class LibraryWorkspace {
     this.options.onEnvironment?.(this.context.environment);
   }
   private schedule() { clearTimeout(this.timer); if (this.visible) this.timer = setTimeout(() => { void this.refresh().catch(async e => { try { await this.refreshContext(); await this.refresh(); } catch { this.failure(e); } }).finally(() => this.schedule()); }, 2500); }
-  private clearSelected(clearList = true) { this.generation++; this.selected = undefined; this.selectedDevice = undefined; this.page = undefined; this.listSignature = ''; this.audio().pause(); this.audio().removeAttribute('src'); this.view('detail').hidden = true; this.view('device-detail').hidden = true; this.view('rename-form').hidden = true; this.view('empty').hidden = false; this.view('paragraphs').replaceChildren(); if (clearList) { this.rows = []; this.view('list').replaceChildren(); } }
+  private clearSelected(clearList = true) { this.generation++; this.selected = undefined; this.selectedDevice = undefined; this.page = undefined; this.forwarder.select(); this.listSignature = ''; this.audio().pause(); this.audio().removeAttribute('src'); this.view('detail').hidden = true; this.view('device-detail').hidden = true; this.view('rename-form').hidden = true; this.view('empty').hidden = false; this.view('paragraphs').replaceChildren(); if (clearList) { this.rows = []; this.view('list').replaceChildren(); } }
   private async refresh() {
     const generation = this.generation;
     const scopes: Scope[] = this.accountAvailable ? ['personal', 'account'] : ['personal'];
@@ -259,7 +263,7 @@ export class LibraryWorkspace {
   private status(row: RecordingRow) { return row.recording.state === 'deleted' ? '回收站' : row.recording.state === 'needs_recovery' ? '需要恢复音频' : row.recording.state === 'unsupported' ? '音频暂不支持' : row.job ? (row.job.state === 'running' ? stageNames[row.job.stage!] : stateNames[row.job.state]) : '已保存 · 尚未转写'; }
   private async select(row: ScopedRecordingRow) {
     const changed = row.scope !== this.selected?.scope || row.recording.id !== this.selected?.recording.id; this.client.scope = row.scope; this.selectedDevice = undefined; this.view('device-detail').hidden = true; this.view('rename-form').hidden = true; this.selected = row;
-    if (changed) { this.generation++; this.page = undefined; this.version = ''; this.view('paragraphs').replaceChildren(); this.cursor = 0; this.query = ''; this.speaker = ''; this.mode = 'all'; this.field('search').value = ''; this.field('mode').value = 'all'; this.playEnd = null; this.audio().pause(); this.audio().src = this.client.url(`recordings/${row.recording.id}/audio`); }
+    if (changed) { this.generation++; this.page = undefined; this.forwarder.select(); this.version = ''; this.view('paragraphs').replaceChildren(); this.cursor = 0; this.query = ''; this.speaker = ''; this.mode = 'all'; this.field('search').value = ''; this.field('mode').value = 'all'; this.playEnd = null; this.audio().pause(); this.audio().src = this.client.url(`recordings/${row.recording.id}/audio`); }
     this.view('empty').hidden = true; this.view('detail').hidden = false; this.renderHeader();
     if (row.revision && row.recording.state !== 'deleted') await this.loadTranscript(); else this.view('reader').hidden = true;
     await this.refresh();
@@ -277,6 +281,24 @@ export class LibraryWorkspace {
     this.button('export-current').hidden = deleted || !row.revision; this.button('export-current').disabled = !this.page || this.page.transcript.recordingId !== row.recording.id;
     this.button('delete').hidden = deleted; this.button('restore').hidden = !deleted; this.button('original').hidden = deleted; this.button('audio').hidden = deleted || row.recording.state !== 'stored'; this.button('rename').hidden = deleted;
     this.root.querySelector<HTMLElement>('.library-player')!.hidden = deleted || row.recording.state !== 'stored'; this.view('reader').hidden = !row.revision || deleted || this.page?.transcript.recordingId !== row.recording.id;
+    if (!deleted && this.page?.transcript.recordingId === row.recording.id) this.forwarder.select({ recordingId: row.recording.id, revisionId: this.page.revision.revisionId, scope: row.scope });
+    else if (deleted) this.forwarder.select();
+    this.renderForward();
+  }
+  private renderForward() {
+    const ready = !!this.selected?.revision && this.selected.recording.state !== 'deleted';
+    const transfer = this.forwarder.transfer, error = this.forwarder.error, busy = this.forwarder.busy;
+    this.button('chatgpt-send').hidden = !ready;
+    this.button('chatgpt-send').disabled = busy || this.editing || this.saving || !this.page || this.page.transcript.recordingId !== this.selected?.recording.id || this.page.revision.revisionId !== (this.version || this.selected?.revision?.revisionId);
+    this.button('chatgpt-send').textContent = busy ? '正在发送…' : transfer?.state === 'submitted' ? '已提交 · 打开 ChatGPT' : transfer?.state === 'user_action_required' ? '核对发送状态' : this.version ? '发送此历史版本' : '发送到 ChatGPT';
+    this.button('chatgpt-send').title = this.editing || this.saving ? '请先保存或取消当前修改' : '将当前已保存版本的完整转写作为 Markdown 附件发送到已连接的 ChatGPT 页面';
+    this.view('chatgpt').hidden = !ready || !(transfer || error);
+    this.view('chatgpt-status').textContent = error || (transfer?.state === 'submitted' ? '已提交到 ChatGPT。回复请在对话中查看。' : transfer?.message || '正在准备完整稿件…');
+    const needsAction = !!error || transfer?.state === 'user_action_required' || transfer?.state === 'failed';
+    this.view('chatgpt').classList.toggle('needs-action', needsAction);
+    this.button('chatgpt-open').hidden = !transfer?.conversationUrl;
+    this.button('chatgpt-settings').hidden = !needsAction;
+    this.button('chatgpt-export').hidden = !needsAction || transfer?.state === 'submitted';
   }
   private async loadTranscript(at?: number) {
     if (!this.selected || this.editing) return;
@@ -297,6 +319,7 @@ export class LibraryWorkspace {
     this.view('page').textContent = `${Math.floor(this.cursor / 60) + 1} / ${Math.max(1, Math.ceil(data.total / 60))}`;
     this.button('prev').disabled = this.cursor === 0; this.button('next').disabled = data.nextCursor === null;
     this.renderSpeakers(); this.renderParagraphs(); this.button('export-current').disabled = false;
+    this.forwarder.select({ recordingId, revisionId: data.revision.revisionId, scope: this.selected.scope }); this.renderForward();
   }
   private speakerName(id: string | null) { return this.page?.transcript.speakers.find(s => s.id === id)?.displayName || '讲话人待确认'; }
   private renderSpeakers() {
@@ -330,14 +353,14 @@ export class LibraryWorkspace {
     if (!data.transcript.segments.length) this.view('paragraphs').append(el('p', 'library-empty-results', '没有符合条件的段落。'));
   }
   private editSegment(row: HTMLElement, segment: TranscriptSegment) {
-    if (this.editing) { this.notice('请先保存或取消正在编辑的段落。'); return; } this.editing = true;
+    if (this.editing) { this.notice('请先保存或取消正在编辑的段落。'); return; } this.editing = true; this.renderForward();
     const form = el('div', 'library-editor'), text = el('textarea'); text.value = segment.text; text.maxLength = 10000; text.setAttribute('aria-label', '本段转写文字');
     const speaker = el('select'); speaker.append(new Option('讲话人待确认', 'unknown')); for (const s of this.page!.transcript.speakers) speaker.append(new Option(s.displayName, s.id)); speaker.value = segment.speakerId || 'unknown'; speaker.setAttribute('aria-label', '本段讲话人');
     const start = el('input'), end = el('input'); start.value = precise(segment.startMs); end.value = precise(segment.endMs); start.setAttribute('aria-label', '本段开始时间'); end.setAttribute('aria-label', '本段结束时间');
     const controls = el('div', 'library-editor-controls');
     for (const [caption, field] of [['讲话人', speaker], ['开始时间', start], ['结束时间', end]] as const) { const label = el('label', '', caption); label.append(field); controls.append(label); }
     const save = el('button', 'library-primary', '保存本段'), cancel = el('button', '', '取消编辑'), message = el('p', 'library-editor-message');
-    cancel.onclick = () => { this.editing = false; form.remove(); };
+    cancel.onclick = () => { this.editing = false; form.remove(); this.renderForward(); };
     save.onclick = () => {
       const first = parseTime(start.value), last = parseTime(end.value);
       if (!Number.isSafeInteger(first) || !Number.isSafeInteger(last) || first >= last || first < 0 || last > this.page!.transcript.durationMs) { message.textContent = '请填写有效的起止时间，格式为 时:分:秒.毫秒。'; return; }
@@ -345,7 +368,7 @@ export class LibraryWorkspace {
       if (text.value !== segment.text) changes.push({ kind: 'segment_text', segmentId: segment.id, text: text.value });
       const speakerId = speaker.value === 'unknown' ? null : speaker.value; if (speakerId !== segment.speakerId) changes.push({ kind: 'segment_speaker', segmentId: segment.id, speakerId });
       if (first !== segment.startMs || last !== segment.endMs) changes.push({ kind: 'segment_time', segmentId: segment.id, startMs: first, endMs: last });
-      if (!changes.length) { this.editing = false; form.remove(); return; }
+      if (!changes.length) { this.editing = false; form.remove(); this.renderForward(); return; }
       save.disabled = true;
       void this.save(changes, true).catch(e => { message.textContent = e instanceof Error ? e.message : '保存失败，请重试。'; }).finally(() => { save.disabled = false; });
     };
@@ -354,9 +377,9 @@ export class LibraryWorkspace {
   private async save(changes: TranscriptRevision['changes'], fromEditor = false) {
     if (this.version) throw new Error('历史稿件为只读，请切回最新稿件后校对。');
     if (this.saving || this.editing && !fromEditor) throw new Error('请先保存或取消当前段落的修改。');
-    if (!this.page || !this.selected) return; this.saving = true;
+    if (!this.page || !this.selected) return; this.saving = true; this.renderForward();
     try { const result = await this.client.save(this.selected.recording.id, this.page.revision.revisionId, changes); this.selected.revision = result.revision; this.editing = false; await this.loadTranscript(); this.notice('修改已保存到本机录音库。'); }
-    finally { this.saving = false; }
+    finally { this.saving = false; this.renderForward(); }
   }
   private bind() {
     this.button('workspace-settings').onclick = () => { this.closeMenus(); this.options.onOpenSettings?.(); };
@@ -380,6 +403,10 @@ export class LibraryWorkspace {
     this.button('cancel-transfer').onclick = () => this.options.onCancelDownload?.();
     this.button('refresh-device').onclick = () => this.options.onRefreshDevice?.();
     this.button('export-current').onclick = () => this.button('export').click();
+    this.button('chatgpt-send').onclick = () => { if (this.editing || this.saving || !this.page) return; if (this.forwarder.transfer?.state === 'submitted') void this.forwarder.open(); else void this.forwarder.send(); };
+    this.button('chatgpt-open').onclick = () => { void this.forwarder.open(); };
+    this.button('chatgpt-settings').onclick = () => this.options.onOpenSettings?.('chatgpt');
+    this.button('chatgpt-export').onclick = () => { this.field('format').value = 'md'; this.button('export').click(); };
     this.button('audio').onclick = () => { if (this.selected) this.download(this.client.url(`recordings/${this.selected.recording.id}/audio?download=1`)); };
     this.button('copy-path').onclick = () => { const path = this.selected?.storagePath; if (path) void navigator.clipboard.writeText(path).then(() => this.notice('目录路径已复制。')).catch(() => this.notice('请选中保存位置并复制目录路径。')); };
     this.button('rename').onclick = () => { if (this.selected) { this.field('title').value = recordingTitle(this.selected.recording); this.view('rename-form').hidden = false; this.field('title').focus(); } };

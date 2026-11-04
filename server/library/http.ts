@@ -9,6 +9,7 @@ import { MAX_AUDIO_BYTES } from './store.ts';
 import type { ImportRequest, RevisionState } from './store.ts';
 import { exportTranscript, saveRevision } from './revisions.ts';
 import type { TranscriptRevision } from '../../src/library/types.ts';
+import { ChatGPTTransfers } from './chatgpt.ts';
 
 export interface LibraryContext { accountId?: string; deviceIds: string[]; csrfToken: string }
 export function jsonResponse(res: ServerResponse, status: number, value: unknown) {
@@ -44,6 +45,7 @@ async function stream(req: IncomingMessage, res: ServerResponse, path: string, t
 function numberParam(value: string | null, fallback: number, max: number) { if (value === null) return fallback; const n = Number(value); if (!Number.isSafeInteger(n) || n < 0 || n > max) throw new LibraryError('CURSOR_INVALID', '分页参数不正确。'); return n; }
 
 export function createLibraryHandler(service: LibraryService) {
+  const chatgpt = new ChatGPTTransfers(service.store);
   return async (req: IncomingMessage, res: ServerResponse, context: LibraryContext) => {
     try {
       await service.ready;
@@ -88,6 +90,9 @@ export function createLibraryHandler(service: LibraryService) {
           recording.state = recording.durationMs ? 'stored' : recording.source.kind === 'ble' ? 'needs_recovery' : 'unsupported'; await atomicJson(join(service.store.recordingDir(scope, recordingId), 'recording.json'), recording); jsonResponse(res, 200, await service.store.row(recording)); return;
         }
         if (recording.state === 'deleted') throw new LibraryError('RECORDING_DELETED', '此录音已移入回收站，请先恢复。', 404);
+        if (parts[2] === 'chatgpt' && parts.length === 3 && req.method === 'GET') { jsonResponse(res, 200, { transfers: await chatgpt.list(scope, recordingId, url.searchParams.get('targetId')) }); return; }
+        if (parts[2] === 'chatgpt' && parts.length === 3 && req.method === 'POST') { jsonResponse(res, 200, await chatgpt.prepare(scope, recordingId, await body(req))); return; }
+        if (parts[2] === 'chatgpt' && parts[3] && req.method === 'PATCH') { jsonResponse(res, 200, { transfer: await chatgpt.update(scope, recordingId, parts[3], await body(req)) }); return; }
         if (parts.length === 2 && req.method === 'GET') { jsonResponse(res, 200, await service.store.row(recording)); return; }
         if (parts.length === 2 && req.method === 'PATCH') { const data = await body(req); jsonResponse(res, 200, await service.store.renameRecording(scope, recordingId, data.title)); return; }
         if (parts.length === 2 && req.method === 'DELETE') {

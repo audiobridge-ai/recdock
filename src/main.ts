@@ -20,6 +20,7 @@ import { WorkspacePreferences } from './ui/preferences.ts';
 import type { DevicePreference } from './ui/preferences.ts';
 import { LibraryWorkspace } from './library/workspace.ts';
 import type { DownloadOptions } from './library/workspace.ts';
+import { installChatGPTSettings } from './chatgpt/settings.ts';
 
 // 仅复制公开的导出脚本；令牌由用户在官方页面手动导出，不经过聊天或本地存储。
 const WEB_SESSION_EXPORT_SCRIPT = String.raw`(() => {
@@ -258,7 +259,7 @@ const libraryWorkspace = new LibraryWorkspace({
   onDownload: (sessionId, options) => downloadRecording(sessionId, options),
   onCancelDownload: () => controller.cancelDownload(),
   onRefreshDevice: () => { void controller.listFiles(); },
-  onOpenSettings: () => overlay.open('settings'),
+  onOpenSettings: section => { overlay.open('settings'); void chatgptSettings.check(); if (section === 'chatgpt') chatgptSettings.focus(); },
   onOpenDevice: () => overlay.open('device'),
   onDisconnectDevice: () => { invalidateAudioExport(); controller.disconnect(); },
   onSwitchDevice: () => switchDevice(),
@@ -268,6 +269,7 @@ const libraryWorkspace = new LibraryWorkspace({
     put('settings-audio-storage', environment.storageRoot || '项目录音目录');
   },
 });
+const chatgptSettings = installChatGPTSettings($('flow-workspace'));
 $<HTMLSelectElement>('transcription-language').value = libraryWorkspace.transcriptionLanguage;
 $('transcription-language').addEventListener('change', () => libraryWorkspace.setTranscriptionLanguage($<HTMLSelectElement>('transcription-language').value as 'zh' | 'en'));
 const deviceEntry = document.createElement('button'); deviceEntry.className = 'text-button'; deviceEntry.textContent = '设备'; deviceEntry.type = 'button'; deviceEntry.id = 'open-device'; deviceEntry.onclick = () => overlay.open('device'); document.querySelector('.topbar')!.insertBefore(deviceEntry, $('flow-open-settings')); document.querySelector('.topbar')!.insertBefore($('open-library'), deviceEntry);

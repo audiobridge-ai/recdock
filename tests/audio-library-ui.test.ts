@@ -7,12 +7,39 @@ import { LibraryWorkspace } from '../src/library/workspace.ts';
 import type { DeviceWorkspaceState } from '../src/library/workspace.ts';
 import type { AudioTranscript, TranscriptRevision, LibraryRecording } from '../src/library/types.ts';
 import { deviceRecordingTitle } from '../src/library/recording-title.ts';
+import type { ForwardPacket } from '../src/chatgpt/types.ts';
 
 const fixture = JSON.parse(readFileSync(new URL('../contracts/fixtures/contract-cases.json', import.meta.url), 'utf8')).bases.transcript.data as AudioTranscript;
 async function until(check: () => boolean) {
   const end = Date.now() + 2000;
   while (!check()) { if (Date.now() > end) throw Error('DOM condition timed out'); await new Promise(r => setTimeout(r, 5)); }
 }
+
+test('一键发送当前已保存完整版本，搜索筛选不截断全文，提交后复用对话不重发', async () => {
+  let starts = 0, opens = 0;
+  const bridge = { info: async () => ({ version: 1, targetId: 'a'.repeat(32), bound: true, targetLabel: 'ChatGPT' }), bind: async () => { throw Error('unused'); }, start: async (packet: ForwardPacket) => { starts++; assert.ok(packet.content.includes(fixture.segments.at(-1)!.text)); return { id: packet.transfer.id, state: 'submitted' as const, conversationUrl: 'https://chatgpt.com/c/ui-result' }; }, status: async (id: string) => ({ id, state: 'submitted' as const, conversationUrl: 'https://chatgpt.com/c/ui-result' }), open: async () => { opens++; } };
+  const f = setup({ chatgptBridge: bridge });
+  try {
+    await f.select();
+    const search = f.query<HTMLInputElement>('[data-field=search]'); search.value = '无匹配'; search.dispatchEvent(new f.dom.window.Event('input')); await until(() => !f.query('.library-paragraph'));
+    f.query<HTMLButtonElement>('[data-action=chatgpt-send]').click(); await until(() => f.query('[data-action=chatgpt-send]').textContent!.includes('已提交'));
+    assert.equal(starts, 1); assert.equal(f.forwarded[0].transfer.revisionId, fixture.revisionId);
+    const post = f.calls.find(c => c.path.endsWith('/chatgpt') && c.method === 'POST')!; assert.equal(post.scope, 'personal'); assert.equal(post.data!.revisionId, fixture.revisionId);
+    f.query<HTMLButtonElement>('[data-action=chatgpt-send]').click(); await until(() => opens === 1); assert.equal(starts, 1);
+  } finally { await f.close(); }
+});
+
+test('未保存编辑禁用转发，保存后绑定新修订，历史版本发送明确标记', async () => {
+  const f = setup();
+  try {
+    await f.select(); f.query<HTMLButtonElement>('.library-edit').click(); assert.equal(f.query<HTMLButtonElement>('[data-action=chatgpt-send]').disabled, true);
+    f.query<HTMLTextAreaElement>('.library-editor textarea').value = '保存后才能发送的新文字'; f.query<HTMLButtonElement>('.library-editor .library-primary').click();
+    await until(() => f.query('.library-text').textContent === '保存后才能发送的新文字'); await until(() => !f.query<HTMLButtonElement>('[data-action=chatgpt-send]').disabled);
+    const version = f.query<HTMLSelectElement>('[data-field=version]'); version.value = fixture.revisionId; version.dispatchEvent(new f.dom.window.Event('change'));
+    await until(() => f.query('[data-action=chatgpt-send]').textContent === '发送此历史版本');
+    assert.equal(f.query<HTMLButtonElement>('[data-action=chatgpt-send]').disabled, false);
+  } finally { await f.close(); }
+});
 function setup(options: Partial<ConstructorParameters<typeof LibraryWorkspace>[0]> = {}, initialLanguage?: string) {
   const dom = new JSDOM('<header class="topbar"><span class="local-badge"></span></header><main></main>', { url: 'http://localhost:5173/' });
   const keys = ['window', 'document', 'Option', 'location', 'history', 'confirm', 'fetch']; const previous = new Map(keys.map(k => [k, Reflect.get(globalThis, k)]));
@@ -25,6 +52,7 @@ function setup(options: Partial<ConstructorParameters<typeof LibraryWorkspace>[0
   let current = structuredClone(fixture), reviewedIds: string[] = [], conflict = false, accountEmpty = true, personalEmpty = false, accountAvailable = true, accountFailure = false, identity = 'scope_testaccount';
   let source: LibraryRecording['source'] = { kind: 'import', deviceId: null, sessionId: null }, accountTitle = '账号录音';
   const history = new Map([[current.revisionId, structuredClone(current)]]);
+  const forwarded: ForwardPacket[] = [];
   const calls: { path: string; method: string; scope: string | null; data: Record<string, unknown> | undefined }[] = [];
   const row = (scope = 'personal') => ({ recording: { schemaVersion: 1, id: current.recordingId, scopeId: scope === 'personal' ? 'scope_personal' : identity, title: scope === 'personal' ? '合成界面测试' : accountTitle, source: scope === 'personal' || source.kind === 'ble' ? source : { kind: 'ble', deviceId: 'test-device', sessionId: 42 }, sourceSha256: current.sourceSha256, durationMs: current.durationMs, createdAtMs: 1, state: 'stored', assets: [] },
     job: { id: 'job_test', state: 'succeeded', stage: null, error: null }, runtime: null, revision: { revisionId: current.revisionId, machineRevisionId: fixture.revisionId, reviewedIds }, language: 'zh' });
@@ -54,12 +82,19 @@ function setup(options: Partial<ConstructorParameters<typeof LibraryWorkspace>[0
     if (path === `/api/library/recordings/${current.recordingId}`) return json(row(url.searchParams.get('scope') || 'personal'));
     if (path.endsWith('/jobs') && method === 'POST') return json({ job: { id: 'job_requested', state: 'queued' } });
     if (path.endsWith('/exports')) return json({ url: '/api/library/exports/exp_test', filename: 'test.md' });
+    if (path.endsWith('/chatgpt') && method === 'GET') return json({ transfers: forwarded.map(p => p.transfer) });
+    if (path.endsWith('/chatgpt') && method === 'POST') {
+      let packet = forwarded.find(p => p.transfer.revisionId === data!.revisionId);
+      if (!packet) { packet = { transfer: { id: 'fwd_' + data!.revisionId, recordingId: current.recordingId, revisionId: String(data!.revisionId), targetId: String(data!.targetId), sha256: 'a'.repeat(64), promptHash: 'b'.repeat(64), filename: 'synthetic.md', state: 'prepared', createdAtMs: 1, updatedAtMs: 1 }, content: JSON.stringify(history.get(String(data!.revisionId))), prompt: String(data!.prompt) }; forwarded.push(packet); }
+      return json(packet);
+    }
+    if (path.includes('/chatgpt/') && method === 'PATCH') { const packet = forwarded.find(p => path.endsWith(p.transfer.id))!; Object.assign(packet.transfer, data); return json({ transfer: packet.transfer }); }
     throw Error('Unexpected test API: ' + path);
   });
   if (initialLanguage) dom.window.localStorage.setItem('recdock.transcriptionLanguage', initialLanguage);
   const workspace = new LibraryWorkspace({ parent: document.querySelector('main')!, onVisibility: () => {}, ...options });
   const query = <T extends Element = HTMLElement>(value: string) => workspace.root.querySelector<T>(value)!;
-  return { workspace, dom, query, calls, downloads, set source(value: LibraryRecording['source']) { source = value; if (source.kind === 'ble') { personalEmpty = true; accountEmpty = false; } }, set accountAvailable(value: boolean) { accountAvailable = value; }, set accountFailure(value: boolean) { accountFailure = value; }, set identity(value: string) { identity = value; }, set accountTitle(value: string) { accountTitle = value; }, set conflict(value: boolean) { conflict = value; }, set accountEmpty(value: boolean) { accountEmpty = value; },
+  return { workspace, dom, query, calls, downloads, forwarded, set source(value: LibraryRecording['source']) { source = value; if (source.kind === 'ble') { personalEmpty = true; accountEmpty = false; } }, set accountAvailable(value: boolean) { accountAvailable = value; }, set accountFailure(value: boolean) { accountFailure = value; }, set identity(value: string) { identity = value; }, set accountTitle(value: string) { accountTitle = value; }, set conflict(value: boolean) { conflict = value; }, set accountEmpty(value: boolean) { accountEmpty = value; },
     async select() { await workspace.open(); query<HTMLButtonElement>('.library-record').click(); await until(() => !!query('.library-paragraph')); },
     async close() { workspace.close(); dom.window.close(); for (const [key, value] of previous) Reflect.set(globalThis, key, value); } };
 }

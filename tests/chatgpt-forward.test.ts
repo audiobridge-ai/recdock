@@ -65,7 +65,7 @@ test('未确认对话不标记成功，已提交不可降级，不接受外站�
 test('转发 HTTP 继承本地会话 CSRF 和账号隔离，不泄露稿件到其他资料范围', async () => {
   const f = await fixture();
   try {
-    const library = createLibraryHandler(f.service), handler = createCloudMiddleware(undefined, Date.now, { library });
+    const library = createLibraryHandler(f.service), handler = createCloudMiddleware(undefined, Date.now, { library, store: { load: async () => ({ version: 1, accounts: {} }), update: async () => { throw Error('Guest fixture must not persist account data'); } } });
     const session = await middlewareRequest(handler, '/api/session', 'GET', undefined, {}), cookie = session.headers.get('set-cookie')!.split(';')[0], csrf = session.json.csrfToken;
     const path = `/api/library/recordings/${f.recording.id}/chatgpt`, input = Buffer.from(JSON.stringify({ targetId, revisionId: f.transcript.revisionId }));
     const headers = { Cookie: cookie, 'Content-Type': 'application/json' };

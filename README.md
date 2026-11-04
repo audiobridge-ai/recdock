@@ -84,7 +84,7 @@ Incomplete transfers are kept only in page memory for the same account, device a
 
 Load the [optional Edge extension](extensions/chatgpt-bridge/README.md), refresh the workspace, then connect an existing signed-in ChatGPT tab under **Settings → ChatGPT delivery**. Select a completed transcript and click **Send to ChatGPT**. The full saved version is attached as Markdown, including paragraphs hidden by search or pagination. Save or cancel pending edits first.
 
-The extension reuses one bound tab and processes one task at a time. A confirmed submission becomes **Open ChatGPT**; repeated clicks open the existing conversation. Login, drafts, upload limits or page changes pause the task and offer manual export. The automation limit is 8 MiB per Markdown file; files are never truncated. A submission receipt does not imply cross-conversation retrieval or memory storage. See the [delivery notes](docs/chatgpt-forward-delivery.md).
+The extension reuses one bound tab and processes one task at a time. A confirmed submission becomes **Open ChatGPT**; repeated clicks open the existing conversation. Consecutive sends create a new conversation in that same tab. Exact text left over from a confirmed submission is cleared through the native editor; new user drafts are preserved. Login, unknown drafts, upload limits or page changes pause the task and offer manual export. The automation limit is 8 MiB per Markdown file; files are never truncated. A submission receipt does not imply cross-conversation retrieval or memory storage. See the [delivery notes](docs/chatgpt-forward-delivery.md).
 
 ## Development
 
@@ -94,7 +94,7 @@ npm run build
 npm run preview
 ```
 
-The current JavaScript suite passes **323 tests**, TypeScript checks and a production build on this Mac. The unchanged Python worker baseline previously passed **39 tests**. FFmpeg is required for the recording library and local processing, and also enables independent audio interoperability tests. See [development notes](docs/development.md) and [protocol notes](docs/protocol.md).
+The current JavaScript suite passes **335 tests**, TypeScript checks and a production build on this Mac. The unchanged Python worker baseline previously passed **39 tests**. FFmpeg is required for the recording library and local processing, and also enables independent audio interoperability tests. See [development notes](docs/development.md) and [protocol notes](docs/protocol.md).
 
 Both development and preview commands provide the loopback-only local API. The `dist/` directory contains only the frontend; hosting it alone does not provide login, native detection or the local-cache API. Keep the same `localhost` origin to preserve browser device permissions and mappings.
 

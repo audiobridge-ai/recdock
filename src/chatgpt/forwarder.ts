@@ -1,5 +1,5 @@
 import type { LibraryClient } from '../library/client.ts';
-import { ChatGPTBridge, chatgptPrompt } from './bridge.ts';
+import { ChatGPTBridge, ChatGPTBridgeTimeout, chatgptPrompt } from './bridge.ts';
 import type { BridgeTask, ForwardPacket, ForwardTransfer } from './types.ts';
 
 export type ForwardBridge = Pick<ChatGPTBridge, 'info' | 'bind' | 'start' | 'status' | 'open'>;
@@ -38,15 +38,22 @@ export class ChatGPTForwarder {
     const result = await this.client.request<{ transfer: ForwardTransfer }>(`recordings/${selection.recordingId}/chatgpt/${transfer.id}`, { targetId: transfer.targetId, state: task.state, message: task.message || '', ...(task.conversationUrl ? { conversationUrl: task.conversationUrl } : {}) }, 'PATCH', selection.scope);
     return result.transfer;
   }
-  private async poll(generation: number, operation: number, selection: ForwardSelection, transfer: ForwardTransfer) {
+  private async poll(generation: number, operation: number, selection: ForwardSelection, transfer: ForwardTransfer, retries = 0) {
     if (!this.current(generation, operation)) return;
     try {
       const task = await this.bridge.status(transfer.id); if (!this.current(generation, operation)) return;
       if (!task) { this.busy = false; this.error = '扩展中没有此任务。点击发送可重新准备；已有提交不会重复发送。'; this.changed(); return; }
       const updated = await this.update(selection, transfer, task); if (!this.current(generation, operation)) return; this.transfer = updated;
+      this.error = '';
       this.busy = ['prepared', 'attaching', 'attached', 'submitting'].includes(task.state); this.changed();
       if (this.busy) this.timer = setTimeout(() => { void this.poll(generation, operation, selection, this.transfer!); }, 1500);
-    } catch (error) { if (this.current(generation, operation)) { this.busy = false; this.error = error instanceof Error ? error.message : '请核对 ChatGPT 页面。'; this.changed(); } }
+    } catch (error) {
+      if (!this.current(generation, operation)) return;
+      this.error = error instanceof Error ? error.message : '请核对 ChatGPT 页面。';
+      this.busy = error instanceof ChatGPTBridgeTimeout && retries < 2;
+      this.changed();
+      if (this.busy) this.timer = setTimeout(() => { void this.poll(generation, operation, selection, transfer, retries + 1); }, 1500);
+    }
   }
   async send() {
     if (!this.selection || this.busy) return;

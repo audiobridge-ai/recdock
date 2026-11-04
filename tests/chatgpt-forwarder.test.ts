@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 // @ts-ignore DOM preferences only.
 import { JSDOM } from 'jsdom';
 import { ChatGPTForwarder } from '../src/chatgpt/forwarder.ts';
+import { ChatGPTBridgeTimeout } from '../src/chatgpt/bridge.ts';
 import type { LibraryClient } from '../src/library/client.ts';
 import type { ForwardPacket, ForwardTransfer } from '../src/chatgpt/types.ts';
 
@@ -11,7 +12,7 @@ const transfer: ForwardTransfer = { id: 'fwd_one', ...selection, targetId, filen
 const packet: ForwardPacket = { transfer, content: '# 合成稿', prompt: '总结' };
 const submitted = { id: transfer.id, state: 'submitted' as const, conversationUrl: 'https://chatgpt.com/c/one' };
 const deferred = <T>() => { let resolve!: (value: T) => void; const promise = new Promise<T>(done => { resolve = done; }); return { promise, resolve }; };
-async function until(check: () => boolean) { const end = Date.now() + 2000; while (!check()) { if (Date.now() > end) throw Error('forwarder condition timed out'); await new Promise(r => setTimeout(r, 5)); } }
+async function until(check: () => boolean) { const end = Date.now() + 4000; while (!check()) { if (Date.now() > end) throw Error('forwarder condition timed out'); await new Promise(r => setTimeout(r, 5)); } }
 function environment() { const previous = Reflect.get(globalThis, 'window'), dom = new JSDOM('', { url: 'http://localhost:5173/' }); Reflect.set(globalThis, 'window', dom.window); return () => { Reflect.set(globalThis, 'window', previous); dom.window.close(); }; }
 const bridge = { info: async () => ({ version: 1, targetId, bound: true, targetLabel: 'ChatGPT' }), bind: async () => { throw Error('unused'); }, start: async () => submitted, status: async () => submitted, open: async () => {} };
 
@@ -42,5 +43,15 @@ test('已发出的旧任务回执保持明确资料范围，不能覆盖新录�
     forwarder.select(selection); const sending = forwarder.send(); await until(() => updating);
     forwarder.select({ recordingId: 'rec_two', revisionId: 'rev_two', scope: 'account' }); updated.resolve({ transfer: { ...transfer, ...submitted } }); await sending;
     assert.equal(updateScope, 'personal'); assert.equal(forwarder.transfer, undefined); assert.equal(forwarder.error, '');
+  } finally { forwarder.select(); close(); }
+});
+
+test('状态回执暂时超时后继续只查询原任务，不误报未安装或重复发送', async () => {
+  const close = environment(); let starts = 0, statuses = 0;
+  const client = { request: async (_path: string, data: any, method = 'POST') => method === 'GET' ? { transfers: [] } : method === 'PATCH' ? { transfer: { ...transfer, ...data } } : packet } as unknown as LibraryClient;
+  const forwarder = new ChatGPTForwarder(client, () => {}, { ...bridge, start: async () => { starts++; return { id: transfer.id, state: 'prepared' as const }; }, status: async () => { statuses++; if (statuses === 1) throw new ChatGPTBridgeTimeout('status'); return submitted; } });
+  try {
+    forwarder.select(selection); await forwarder.send(); assert.equal(forwarder.busy, true); assert.match(forwarder.error, /回执超时/); assert.doesNotMatch(forwarder.error, /未连接|未安装/);
+    await until(() => forwarder.transfer?.state === 'submitted'); assert.equal(forwarder.error, ''); assert.equal(forwarder.busy, false); assert.equal(starts, 1); assert.equal(statuses, 2);
   } finally { forwarder.select(); close(); }
 });

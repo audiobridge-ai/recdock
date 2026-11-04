@@ -290,7 +290,8 @@ export class LibraryWorkspace {
     const transfer = this.forwarder.transfer, error = this.forwarder.error, busy = this.forwarder.busy;
     this.button('chatgpt-send').hidden = !ready;
     this.button('chatgpt-send').disabled = busy || this.editing || this.saving || !this.page || this.page.transcript.recordingId !== this.selected?.recording.id || this.page.revision.revisionId !== (this.version || this.selected?.revision?.revisionId);
-    this.button('chatgpt-send').textContent = busy ? '正在发送…' : transfer?.state === 'submitted' ? '已提交 · 打开 ChatGPT' : transfer?.state === 'user_action_required' ? '核对发送状态' : this.version ? '发送此历史版本' : '发送到 ChatGPT';
+    const sendingLabel = transfer?.state === 'attaching' ? '上传附件…' : transfer?.state === 'submitting' ? '确认提交…' : transfer?.state === 'attached' ? '提交消息…' : '准备对话…';
+    this.button('chatgpt-send').textContent = busy ? sendingLabel : transfer?.state === 'submitted' ? '已提交 · 打开 ChatGPT' : transfer?.state === 'user_action_required' || transfer && error ? '核对发送状态' : this.version ? '发送此历史版本' : '发送到 ChatGPT';
     this.button('chatgpt-send').title = this.editing || this.saving ? '请先保存或取消当前修改' : '将当前已保存版本的完整转写作为 Markdown 附件发送到已连接的 ChatGPT 页面';
     this.view('chatgpt').hidden = !ready || !(transfer || error);
     this.view('chatgpt-status').textContent = error || (transfer?.state === 'submitted' ? '已提交到 ChatGPT。回复请在对话中查看。' : transfer?.message || '正在准备完整稿件…');

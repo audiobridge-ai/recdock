@@ -59,7 +59,7 @@ test('设备偏好只接受匹配 origin/账号/SN 的成功协议记录，丢�
 test('IndexedDB 不可用时本页内存仍可复用设备与格式，清账号不影响其他账号', async () => {
   let now = 100;
   const preferences = new WorkspacePreferences(origin, undefined, () => now++);
-  assert.equal(await preferences.loadAudioFormat('a'), 'wav');
+  assert.equal(await preferences.loadAudioFormat('a'), 'ogg');
   assert.equal(await preferences.rememberDevice('a', 's1', 'b1', 20), false);
   await preferences.rememberDevice('a', 's2', 'b2', 30); await preferences.rememberDevice('other', 's1', 'b3', 20);
   await preferences.saveAudioFormat('a', 'ogg'); await preferences.saveAudioFormat('other', 'ogg');
@@ -67,7 +67,7 @@ test('IndexedDB 不可用时本页内存仍可复用设备与格式，清账号�
   assert.equal((await preferences.loadDevice('a', 's1'))?.browserDeviceId, 'b1');
   assert.equal(await preferences.loadAudioFormat('a'), 'ogg'); assert.equal(preferences.persistent, false);
   await preferences.clearAccount('a');
-  assert.equal(await preferences.loadDevice('a', 's1'), undefined); assert.equal(await preferences.loadAudioFormat('a'), 'wav');
+  assert.equal(await preferences.loadDevice('a', 's1'), undefined); assert.equal(await preferences.loadAudioFormat('a'), 'ogg');
   assert.equal((await preferences.loadDevice('other', 's1'))?.browserDeviceId, 'b3'); assert.equal(await preferences.loadAudioFormat('other'), 'ogg');
 });
 
@@ -101,6 +101,6 @@ test('坏缓存和未知格式不阻塞恢复，也不会被当作已验证设�
   values.set(JSON.stringify([origin, 'format', 'a']), { kind: 'format', origin, accountId: 'a', format: 'malformed' });
   const preferences = new WorkspacePreferences(origin, factory);
   assert.equal(await preferences.loadDevice('a', 's'), undefined); assert.deepEqual(await preferences.loadDevices('a'), []);
-  assert.equal(await preferences.loadAudioFormat('a'), 'wav'); assert.equal(preferences.persistent, true);
+  assert.equal(await preferences.loadAudioFormat('a'), 'ogg'); assert.equal(preferences.persistent, true);
   assert.equal(await preferences.rememberDevice('a', 's', 'b', 0), false);
 });

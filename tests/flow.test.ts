@@ -90,5 +90,5 @@ test('IndexedDB 缓存解析只保留非敏感白名单，畸形端口与跨账�
   assert.equal(parseBrowserDeviceBinding({ ...value, verifiedPortVersion: 20.5 }, 'account-a', 'note-a'), undefined);
   assert.equal(parseBrowserDeviceBinding({ ...value, verifiedPortVersion: 65536 }, 'account-a', 'note-a'), undefined);
   assert.equal(parseBrowserDeviceBinding({ ...value, verifiedAt: Infinity }, 'account-a', 'note-a'), undefined);
-  assert.equal(savedAudioFormat('ogg'), 'ogg'); assert.equal(savedAudioFormat('wav'), 'wav'); assert.equal(savedAudioFormat('unexpected'), 'wav');
+  assert.equal(savedAudioFormat('ogg'), 'ogg'); assert.equal(savedAudioFormat('wav'), 'wav'); assert.equal(savedAudioFormat('unexpected'), 'ogg');
 });

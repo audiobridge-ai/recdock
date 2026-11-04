@@ -1,4 +1,5 @@
 import './style.css';
+import './library/workspace.css';
 import { PlaudController } from './app/controller.ts';
 import { detectDeviceProtocol } from './app/device-protocol.ts';
 import { emptyCredentials, importCredentials, validateCredentials } from './auth/credentials.ts';
@@ -11,11 +12,14 @@ import type { RecordingFile } from './protocol/files.ts';
 import { canSaveCompletedDownload, downloadActionLabel, recordingFilesBlocked, recordingFilesHint, recordingFileView, recordingView, transferView } from './ui/recordings.ts';
 import type { PlayableRecording } from './audio/ogg.ts';
 import { recoverRecording } from './audio/recovery.ts';
-import { MAX_WAV_INPUT_BYTES, toWav } from './audio/wav.ts';
+import { toWav } from './audio/wav.ts';
 import { cloudFailureAction, connectionChoice, connectionProgress, initialFlowState, reduceFlow } from './ui/flow.ts';
-import type { ConnectionStep, FlowEvent, WorkspaceTab } from './ui/flow.ts';
+import type { ConnectionStep, FlowEvent } from './ui/flow.ts';
+import { WorkspaceOverlay } from './ui/workspace-overlay.ts';
 import { WorkspacePreferences } from './ui/preferences.ts';
 import type { DevicePreference } from './ui/preferences.ts';
+import { LibraryWorkspace } from './library/workspace.ts';
+import type { DownloadOptions } from './library/workspace.ts';
 
 // 仅复制公开的导出脚本；令牌由用户在官方页面手动导出，不经过聊天或本地存储。
 const WEB_SESSION_EXPORT_SCRIPT = String.raw`(() => {
@@ -34,7 +38,7 @@ const WEB_SESSION_EXPORT_SCRIPT = String.raw`(() => {
 const WEB_SESSION_EXPORT_READY = true;
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
-  <header class="topbar"><a class="brand" href="/" aria-label="PLAUD 蓝牙工作台首页"><span class="brand-mark">p<span></span></span><strong>PLAUD<span>蓝牙工作台</span></strong></a><span class="local-badge"><i></i> 本地运行 · BLE</span></header>
+  <header class="topbar"><a class="brand" href="/" aria-label="PLAUD 录音工作台首页"><span class="brand-mark">p<span></span></span><strong>PLAUD<span>录音工作台</span></strong></a><span class="local-badge"><i></i> 本地运行 · 录音与转写</span></header>
   <main>
     <div class="intro"><div><p class="eyebrow">DEVICE WORKSPACE / 01</p><h1>让设备状态，<br class="mobile-br">触手可及。</h1><p class="intro-copy">在电脑浏览器中连接你的 PLAUD，读取状态并通过蓝牙下载录音。</p></div><span class="edition">本地工作台 <strong>0.1</strong><br>已绑定设备 · 状态与录音文件</span></div>
     <div class="environment" id="environment" role="status"><span class="env-icon">✓</span><span id="env-text">正在检查浏览器环境…</span><span class="env-note">推荐电脑 Chrome / Edge</span></div>
@@ -134,7 +138,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
         </section>
         <section class="panel recordings-panel" aria-labelledby="recordings-title">
           <div class="section-heading"><div><p class="eyebrow">05 / RECORDINGS</p><h2 id="recordings-title">设备录音文件</h2></div><button id="refresh-files" class="text-button" type="button">↻ 刷新列表</button></div>
-          <div class="audio-export-controls"><label for="save-format">保存格式<select id="save-format"><option value="wav" selected>WAV（通用播放）</option><option value="ogg">Ogg（压缩文件，体积较小）</option></select></label><button id="recover-file" class="quiet" type="button">恢复已下载文件</button><input id="recording-file" type="file" accept=".bin,.ogg,.opus" hidden></div>
+          <div class="audio-export-controls"><label>转写语言<select id="device-transcription-language"><option value="zh">中文 / 中英混说</option><option value="en">English</option></select></label><label for="save-format">恢复文件导出格式<select id="save-format"><option value="ogg" selected>Ogg（默认，保留压缩音频）</option><option value="wav">WAV（仅本机恢复导出）</option></select></label><button id="recover-file" class="quiet" type="button">恢复已下载文件</button><input id="recording-file" type="file" accept=".bin,.ogg,.opus" hidden></div>
           <p class="hint">WAV 在本机解码，体积较大；Ogg 保留压缩音频。恢复加密 .bin 需先准备同一账号的 RSA 认证材料，无需连接设备。文件与私钥不会上传。</p>
           <p id="files-caption" class="panel-description">设备认证完成后可读取录音目录。</p>
           <p id="files-error" class="recording-error" role="alert" hidden></p>
@@ -168,17 +172,22 @@ function installFlowLayout() {
   const old = document.querySelector('.workspace')!;
   const login = document.querySelector('.login-panel')!, devicePanel = document.querySelector('.device-panel')!;
   const auth = document.querySelector('.auth-panel')!, status = document.querySelector('.status-panel')!, recordings = document.querySelector('.recordings-panel')!, logs = document.querySelector('.log-panel')!, scope = document.querySelector('.scope-note')!;
-  const root = document.createElement('div'); root.className = 'flow-root'; root.id = 'flow-root';
+  const dialog = document.createElement('dialog'); dialog.id = 'plaud-dialog'; dialog.className = 'workspace-dialog';
+  dialog.setAttribute('aria-labelledby', 'plaud-dialog-title');
+  dialog.innerHTML = `<header class="workspace-dialog-header"><div><p>PLAUD</p><h2 id="plaud-dialog-title">连接设备</h2></div><button type="button" data-overlay-close aria-label="关闭弹窗">✕</button></header><div class="flow-root" id="flow-root"></div>`;
+  const root = dialog.querySelector('#flow-root')!;
   root.innerHTML = `
     <div class="flow-feedback"><p id="flow-cache-notice" class="hint" role="status" hidden></p></div>
-    <section id="flow-restore" class="panel flow-centered"><span class="flow-spinner" aria-hidden="true"></span><h2>正在恢复工作台</h2><p>检查本机保存的账号与设备信息…</p></section>
+    <section id="flow-restore" class="panel flow-centered"><span class="flow-spinner" aria-hidden="true"></span><h3>正在读取账号信息</h3><p>本机音频功能随时可用，可关闭弹窗继续使用。</p></section>
     <div id="flow-login" class="flow-login" hidden></div>
-    <section id="flow-devices" class="panel flow-devices" hidden><div class="section-heading"><div><p class="eyebrow">YOUR DEVICES</p><h2>选择要连接的设备</h2><p id="flow-account-label" class="hint"></p></div><button id="devices-logout" class="text-button" type="button">退出登录</button></div><p class="panel-description">连接前先断开手机 App 与设备的蓝牙连接，并将设备放在电脑旁。</p><div id="device-cards" class="device-cards"></div><p id="device-cards-empty" class="files-empty" hidden>此账号暂无绑定设备。请确认与手机 App 使用同一账号及登录方式。</p><div id="device-connect-slot" class="flow-connect-slot"><button id="flow-connect" class="primary" type="button">连接设备</button></div></section>
-    <section id="flow-connecting" class="panel flow-centered" hidden><span class="flow-spinner" aria-hidden="true"></span><p class="eyebrow">CONNECTING</p><h2 id="flow-connecting-name">正在连接设备</h2><p id="flow-connecting-stage" class="panel-description"></p><ol id="flow-progress" class="flow-progress"></ol><button id="flow-cancel" class="quiet" type="button">取消连接</button></section>
-    <section id="flow-workspace" hidden><div class="workspace-heading"><div><p class="eyebrow">DEVICE WORKSPACE</p><h2 id="workspace-device-name">设备工作台</h2><p id="workspace-device-detail" class="hint"></p></div><div class="workspace-heading-actions"><span id="workspace-connection" class="pill">未连接</span><button id="flow-switch-device" class="text-button" type="button">切换设备</button><button id="flow-close-settings" class="text-button" type="button" hidden>返回</button><span id="workspace-disconnect-slot"></span></div></div><div id="workspace-offline" class="workspace-offline" hidden><div><strong id="workspace-offline-title">设备已断开</strong><p id="workspace-offline-detail" class="hint"></p></div><div id="workspace-connect-slot"></div><button id="flow-inline-cancel" class="quiet" type="button" hidden>取消连接</button><ol id="flow-inline-progress" class="flow-progress" hidden></ol></div><nav class="workspace-tabs" aria-label="设备工作台"><button id="tab-overview" type="button">概览</button><button id="tab-recordings" type="button">录音文件</button><button id="tab-settings" type="button">设置</button></nav><div id="workspace-overview"></div><div id="workspace-recordings" hidden></div><div id="workspace-settings" class="settings-stack" hidden><section class="panel"><div class="section-heading"><div><p class="eyebrow">ACCOUNT & STORAGE</p><h2>账号与本机数据</h2></div></div><p id="settings-account" class="panel-description"></p><p id="settings-persistence" class="hint"></p><div id="settings-account-actions" class="actions"><button id="forget-local-data" class="quiet" type="button">退出并清除本机数据</button></div><p class="hint">普通退出会移除登录授权，保留加密的历史录音密钥。清除本机数据后，旧录音可能无法恢复。</p></section><details id="settings-diagnostics" class="settings-diagnostics"><summary>高级设置与连接诊断</summary><p class="hint">协议、认证材料与日志用于排查连接问题。日常连接无需填写这些字段。</p><div id="diagnostic-panels" class="settings-stack"></div></details></div></section>
+    <section id="flow-devices" class="panel flow-devices" hidden><div class="section-heading"><div><h3>选择 PLAUD 设备</h3><p id="flow-account-label" class="hint"></p></div><button id="devices-logout" class="text-button" type="button">退出登录</button></div><p class="panel-description">先断开手机 App 与设备的蓝牙连接，再点击连接并在浏览器中授权。</p><div id="device-cards" class="device-cards"></div><p id="device-cards-empty" class="files-empty" hidden>此账号暂无绑定设备。请确认与手机 App 使用同一账号及登录方式。</p><div id="device-connect-slot" class="flow-connect-slot"><button id="flow-connect" class="primary" type="button">连接设备</button></div></section>
+    <section id="flow-connecting" class="panel flow-centered" hidden><span class="flow-spinner" aria-hidden="true"></span><h3 id="flow-connecting-name">正在连接设备</h3><p id="flow-connecting-stage" class="panel-description"></p><ol id="flow-progress" class="flow-progress"></ol><p class="hint">可关闭弹窗，连接进度会显示在工作台顶部。</p><button id="flow-cancel" class="quiet" type="button">取消连接</button></section>
+    <section id="flow-device-summary" hidden><div class="overlay-device-actions"><button id="flow-switch-device" class="quiet" type="button">切换设备</button><span id="workspace-disconnect-slot"></span></div><div id="workspace-overview"></div></section>
+    <section id="flow-workspace" class="settings-stack" hidden><section class="panel"><div class="section-heading"><h3>账号与本机数据</h3></div><p id="settings-account" class="panel-description"></p><p id="settings-persistence" class="hint"></p><div id="settings-account-actions" class="actions"><button id="settings-login" class="quiet" type="button">登录 PLAUD</button><button id="forget-local-data" class="quiet" type="button">移除账号授权与解密材料</button></div><p class="hint">普通退出保留加密的历史录音密钥。移除解密材料后，旧设备文件可能无法解密。音频与转写文件请在录音列表中管理。</p></section><details id="settings-diagnostics" class="settings-diagnostics"><summary>高级设置与连接诊断</summary><p class="hint">协议、认证材料与日志用于排查连接问题。</p><div id="diagnostic-panels" class="settings-stack"></div></details><details class="settings-diagnostics"><summary>设备原始文件恢复</summary><div id="workspace-recordings"></div></details></section>
     <div id="flow-internal" hidden></div>`;
-  old.replaceWith(root);
+  old.replaceWith(dialog);
   $('flow-login').append(login); $('workspace-overview').append(status); $('workspace-recordings').append(recordings);
+  $('flow-devices').append($('environment'));
   $('diagnostic-panels').append(devicePanel, auth, logs, scope);
   $('settings-account-actions').prepend($('logout'));
   $('flow-internal').append($('cloud-account-controls'));
@@ -190,8 +199,9 @@ function installFlowLayout() {
   login.querySelector('.panel-description')!.after(remember);
   const settings = document.createElement('button'); settings.id = 'flow-open-settings'; settings.className = 'text-button topbar-settings'; settings.type = 'button'; settings.textContent = '设置 / 诊断';
   document.querySelector('.topbar')!.insertBefore(settings, document.querySelector('.local-badge'));
+  login.querySelector('.panel-description')!.textContent = '连接 PLAUD 设备需要登录。本机音频的导入与转写无需登录。';
   const loginHints = login.querySelectorAll<HTMLElement>(':scope > .hint');
-  for (const hint of loginHints) hint.textContent = '密码提交后立即清空。选择“记住登录”会加密保存登录授权；RSA 解密材料会安全保留在本机，用于恢复旧录音。';
+  for (const hint of loginHints) hint.textContent = '密码提交后立即清空；记住登录会加密保存授权，不保存密码。';
   const importHint = $('web-session-import').querySelector<HTMLElement>(':scope > p:last-child');
   if (importHint) importHint.textContent = '提交后清空输入并验证授权。选择记住账号时，本地服务会加密保存授权与录音密钥；不会保存密码。';
 }
@@ -222,7 +232,11 @@ let downloadSaveNotice = '';
 let audioExportBusy = false, audioExportCancelled = false;
 let fallbackOgg: { recording: PlayableRecording; generation: number } | undefined;
 let wasConnected = false;
-let flow = initialFlowState(), standaloneSettings = false;
+let flow = initialFlowState();
+const overlay = new WorkspaceOverlay($<HTMLDialogElement>('plaud-dialog'), () => {
+  if (!overlay.current) { input('login-password').value = ''; clearOfficialSessionInputs(); }
+  render();
+});
 let rsaPrivateKeyHistory: string[] = [];
 const preferences = new WorkspacePreferences(location.origin);
 const devicePreferences = new Map<string, DevicePreference>();
@@ -238,6 +252,19 @@ let protocolDetectionStage = '';
 let selectionRevision = 0, audioFormatRevision = 0;
 const recordingFileButtons = new Map<number, HTMLButtonElement>();
 const controller = new PlaudController(render, log);
+const libraryWorkspace = new LibraryWorkspace({
+  parent: document.querySelector('main')!,
+  onVisibility: visible => { document.body.classList.toggle('library-open', visible); },
+  onDownload: (sessionId, options) => downloadRecording(sessionId, options),
+  onCancelDownload: () => controller.cancelDownload(),
+  onRefreshDevice: () => { void controller.listFiles(); },
+  onOpenSettings: () => overlay.open('settings'),
+  onOpenDevice: () => overlay.open('device'),
+  onDisconnectDevice: () => { invalidateAudioExport(); controller.disconnect(); },
+  onSwitchDevice: () => switchDevice(),
+  onLogout: () => { void logoutAccount(); },
+});
+const deviceEntry = document.createElement('button'); deviceEntry.className = 'text-button'; deviceEntry.textContent = '设备'; deviceEntry.type = 'button'; deviceEntry.id = 'open-device'; deviceEntry.onclick = () => overlay.open('device'); document.querySelector('.topbar')!.insertBefore(deviceEntry, $('flow-open-settings')); document.querySelector('.topbar')!.insertBefore($('open-library'), deviceEntry);
 function transition(event: FlowEvent) { flow = reduceFlow(flow, event); return flow; }
 function currentFlow() { return flow; }
 function cacheNotice(message: string) { put('flow-cache-notice', message); show('flow-cache-notice', !!message); }
@@ -290,7 +317,7 @@ function updateFlowFromController() {
   if (!controllerFlowStarted) return;
   if (s.phase === 'ready') {
     const ready = transition({ type: 'connect-ready', operation: flow.operation, serialNumber: selectedCloudDevice()?.serialNumber || '' });
-    if (ready.connection === 'ready') { standaloneSettings = false; rememberConnectedDevice(ready.operation); }
+    if (ready.connection === 'ready') { rememberConnectedDevice(ready.operation); if (overlay.current === 'device') overlay.close(); }
   } else if (s.phase === 'error' || s.phase === 'credentials') transition({ type: 'connect-error', operation: flow.operation, message: s.error || '连接未完成，请重试。' });
   else {
     const step: ConnectionStep = /读取.*状态|确认认证/.test(s.stage) ? 'reading' : s.phase === 'authenticating' ? 'authenticating' : 'gatt';
@@ -299,17 +326,27 @@ function updateFlowFromController() {
 }
 function renderFlow(blocked: boolean) {
   if (cloudSession?.persistence?.available === false) cacheNotice(cloudSession.persistence.error || '本机文件缓存不可用，本次登录未被记住。关闭服务后可能需要重新登录。');
-  const workspace = flow.screen === 'workspace' || standaloneSettings;
-  for (const screen of ['restore', 'login', 'devices', 'connecting', 'workspace']) show(`flow-${screen}`, screen === 'workspace' ? workspace : !standaloneSettings && flow.screen === screen);
-  document.body.dataset.screen = workspace ? 'workspace' : flow.screen;
-  show('cloud-notice', !workspace || $('cloud-notice').dataset.error === 'true');
-  $<HTMLButtonElement>('flow-open-settings').disabled = blocked || flow.screen === 'restore';
+  const settings = overlay.current === 'settings', restoring = flow.screen === 'restore';
+  const connected = controller.snapshot.phase === 'ready', connecting = flow.connection === 'connecting';
+  const authenticated = cloudSession?.authenticated === true;
+  document.body.dataset.screen = 'workspace';
+  put('plaud-dialog-title', settings ? '设置与诊断' : restoring ? 'PLAUD 账号' : connecting ? '正在连接设备' : connected ? '设备详情' : authenticated ? '连接 PLAUD 设备' : '登录 PLAUD');
+  show('flow-restore', !settings && restoring);
+  show('flow-login', !settings && !restoring && !authenticated);
+  show('flow-devices', !settings && !restoring && authenticated && !connecting && !connected);
+  show('flow-connecting', !settings && connecting);
+  show('flow-device-summary', !settings && connected && !connecting);
+  show('flow-workspace', settings);
+  show('cloud-notice', cloudBusy || $('cloud-notice').dataset.error === 'true');
+  $<HTMLButtonElement>('flow-open-settings').disabled = false;
   put('flow-account-label', `${cloudSession?.account?.email || '已登录账号'}${cloudSession?.offline ? ' · 当前使用本机缓存' : ''}`);
-  put('settings-account', cloudSession?.authenticated ? `当前账号 · ${cloudSession.account?.email || '已登录账号'}` : '当前未登录。可使用高级诊断手工导入自己的认证材料。');
-  put('settings-persistence', cloudSession?.persistence?.available ? (cloudSession.persistence.hasSavedAccount ? '账号与录音密钥已加密保存在本机。' : '本机文件缓存可用，当前账号未选择持久保存登录。') : '本机文件缓存当前不可用。登录与设备操作仍可尝试，关闭服务后可能需要重新登录。');
-  $('logout').hidden = !cloudSession?.authenticated; show('forget-local-data', !!cloudSession?.authenticated || !!cloudSession?.persistence?.hasSavedAccount);
-  $<HTMLButtonElement>('forget-local-data').disabled = cloudBusy || controller.snapshot.busy || choosing || watching;
-  $<HTMLButtonElement>('devices-logout').disabled = cloudBusy || controller.snapshot.busy || choosing || watching;
+  put('settings-account', authenticated ? `当前账号 · ${cloudSession?.account?.email || '已登录账号'}` : '当前未登录。导入、播放和本地转写无需 PLAUD 账号。');
+  put('settings-persistence', cloudSession?.persistence?.available ? (cloudSession.persistence.hasSavedAccount ? '账号与录音密钥已加密保存在本机。' : '本机文件缓存可用，当前账号未选择持久保存登录。') : '登录授权可选择加密保存在本机。');
+  $('logout').hidden = !authenticated; show('settings-login', !authenticated);
+  show('forget-local-data', authenticated || !!cloudSession?.persistence?.hasSavedAccount);
+  $<HTMLButtonElement>('settings-login').disabled = restoring || cloudBusy;
+  $<HTMLButtonElement>('forget-local-data').disabled = blocked;
+  $<HTMLButtonElement>('devices-logout').disabled = blocked;
   put('flow-connecting-name', `正在连接 ${selectedCloudDevice()?.name || 'PLAUD 设备'}`);
   put('flow-connecting-stage', flow.step === 'choosing' ? '请在浏览器列表中选择同一台设备。' : flow.step === 'preparing' ? protocolDetectionStage || '正在准备账号与设备认证材料…' : controller.snapshot.stage);
   const rows = cloudSession?.devices;
@@ -325,29 +362,15 @@ function renderFlow(blocked: boolean) {
       cloudDeviceCards.set(row.serialNumber, button); return button;
     }));
   }
-  for (const [serialNumber, card] of cloudDeviceCards) { card.classList.toggle('selected', serialNumber === flow.selectedSerialNumber); card.setAttribute('aria-pressed', String(serialNumber === flow.selectedSerialNumber)); card.disabled = blocked; }
+  for (const [serialNumber, card] of cloudDeviceCards) { card.classList.toggle('selected', serialNumber === flow.selectedSerialNumber); card.setAttribute('aria-pressed', String(serialNumber === flow.selectedSerialNumber)); card.disabled = blocked || controller.connected; }
   show('device-cards-empty', !rows?.length);
-  const active = rows?.find(row => row.serialNumber === flow.workspaceSerialNumber);
-  put('workspace-device-name', standaloneSettings ? '设置与诊断' : active?.name || 'PLAUD 工作台');
-  put('workspace-device-detail', standaloneSettings ? '技术选项仅用于排查问题。' : `${active?.model || '已绑定设备'} · ${flow.connection === 'ready' ? '已通过设备认证' : '工作台已保留'}`);
-  put('workspace-connection', flow.connection === 'ready' ? '已连接' : flow.connection === 'connecting' ? '连接中' : '已断开');
-  $('workspace-connection').dataset.phase = flow.connection === 'ready' ? 'ready' : 'idle';
-  show('flow-switch-device', !standaloneSettings); show('flow-close-settings', standaloneSettings);
   $<HTMLButtonElement>('flow-switch-device').disabled = blocked;
-  show('workspace-offline', !standaloneSettings && flow.connection !== 'ready');
-  put('workspace-offline-title', flow.connection === 'connecting' ? '正在重新连接' : '设备已断开');
-  put('workspace-offline-detail', flow.connection === 'connecting' ? (flow.step === 'preparing' ? protocolDetectionStage || '正在准备认证材料…' : controller.snapshot.stage) : flow.error || '页面与标签已保留，设备重新连接后可继续操作。');
-  show('flow-inline-cancel', flow.connection === 'connecting'); show('flow-inline-progress', flow.connection === 'connecting');
-  const connect = $('flow-connect'), slot = workspace ? $('workspace-connect-slot') : $('device-connect-slot');
-  if (connect.parentElement !== slot) slot.append(connect);
-  connect.hidden = workspace && (standaloneSettings || flow.connection !== 'offline');
+  const connect = $<HTMLButtonElement>('flow-connect');
   connect.textContent = flow.workspaceSerialNumber === flow.selectedSerialNumber ? '重新连接' : '连接设备';
-  $<HTMLButtonElement>('flow-connect').disabled = !supported || blocked || !selectedCloudDevice() || flow.connection !== 'offline';
-  for (const id of ['flow-progress', 'flow-inline-progress']) $('' + id).replaceChildren(...connectionProgress(flow).map(row => { const li = document.createElement('li'); li.dataset.status = row.status; li.textContent = row.label; return li; }));
-  const tab = standaloneSettings ? 'settings' : flow.tab;
-  for (const name of ['overview', 'recordings', 'settings'] as const) { show(`workspace-${name}`, name === tab); $('tab-' + name).classList.toggle('active', name === tab); $('tab-' + name).setAttribute('aria-current', name === tab ? 'page' : 'false'); }
-  document.querySelector<HTMLElement>('.workspace-tabs')!.hidden = standaloneSettings;
-  if (flow.error && flow.screen !== 'workspace') { put('cloud-notice', flow.error); $('cloud-notice').dataset.error = 'true'; }
+  connect.disabled = !supported || blocked || !selectedCloudDevice() || flow.connection !== 'offline';
+  $('flow-progress').replaceChildren(...connectionProgress(flow).map(row => { const li = document.createElement('li'); li.dataset.status = row.status; li.textContent = row.label; return li; }));
+  if (flow.error) { put('cloud-notice', flow.error); $('cloud-notice').dataset.error = 'true'; }
+  libraryWorkspace.updateAccount({ authenticated, restoring, accountId: cloudSession?.account?.accountId, email: cloudSession?.account?.email, busy: blocked, connecting, error: flow.error });
 }
 function invalidateAudioExport() {
   downloadGeneration++; fallbackOgg = undefined;
@@ -407,6 +430,7 @@ function renderCloudSession() {
   if (cloudSession?.devices?.some(row => row.serialNumber === previous)) selector.value = previous;
   else if (cloudSession?.devices?.length === 1) selector.value = cloudSession.devices[0].serialNumber;
   renderCloudDeviceDetail();
+  void libraryWorkspace.refreshIdentity();
 }
 function renderCloudDeviceDetail() {
   const row = selectedCloudDevice();
@@ -452,7 +476,7 @@ function acceptCloudLogin(session: CloudSession, imported = false): boolean {
   if (!session.authenticated || !session.account?.accountId) throw new CloudApiError('INVALID_SESSION', 0, '登录响应缺少有效账号身份，请重新登录。');
   clearCloudMaterials(); cloudSession = session; renderCloudSession();
   transition({ type: 'session', accountId: session.account.accountId, deviceSerialNumbers: session.devices?.map(row => row.serialNumber) });
-  chosenFor = undefined; device = undefined; standaloneSettings = false; devicePreferences.clear();
+  chosenFor = undefined; device = undefined; devicePreferences.clear();
   void loadAccountPreferences().then(render);
   usingCloudCredentials = !!selectedCloudDevice();
   put('cloud-notice', session.devices?.length ? (imported ? '官方 Web 登录态已验证并导入，请选择要连接的账号绑定设备。' : '已登录，请选择你要连接的账号绑定设备。') : '账号授权已验证，但当前账号未返回绑定设备。请确认手机 App 与官方 Web 使用同一账号及登录方式。');
@@ -522,6 +546,7 @@ function renderProtocol() {
 function renderRecordingClock() {
   const view = recordingView(controller.snapshot.recording, Date.now());
   put('recording-duration', view.duration); put('recording-duration-label', view.durationLabel);
+  libraryWorkspace.updateDeviceClock(view.duration);
 }
 function stopRecordingClock() { clearInterval(recordingClock); recordingClock = undefined; }
 function syncRecordingClock() {
@@ -556,14 +581,18 @@ function renderRecordings(blocked: boolean) {
       size.className = 'recording-file-size'; size.textContent = formatBytes(BigInt(file.size)); size.title = `${file.size.toLocaleString('zh-CN')} B`;
       const button = document.createElement('button'); button.type = 'button'; button.className = 'recording-download';
       button.setAttribute('aria-label', `下载会话 ${view.id} 的录音文件`);
-      button.addEventListener('click', () => { void downloadRecording(file.sessionId); });
+      button.addEventListener('click', () => { void downloadRecording(file.sessionId, { transcribe: true, language: $<HTMLSelectElement>('device-transcription-language').value as 'zh' | 'en' }); });
+      const only = document.createElement('button'); only.type = 'button'; only.className = 'recording-download quiet'; only.textContent = '仅下载 Ogg'; only.dataset.downloadOnly = String(file.sessionId); only.onclick = () => { void downloadRecording(file.sessionId, { transcribe: false, language: $<HTMLSelectElement>('device-transcription-language').value as 'zh' | 'en' }); }; action.append(only);
       recordingFileButtons.set(file.sessionId, button); action.append(button); row.append(id, size, action); return row;
     });
     $('recording-files').replaceChildren(...rows);
   }
   for (const [sessionId, button] of recordingFileButtons) {
-    button.disabled = unavailable; button.textContent = downloadActionLabel(sessionId, s.transfer);
+    button.disabled = unavailable; button.textContent = downloadActionLabel(sessionId, s.transfer).replace(/^下载$/, '下载并转写');
   }
+  for (const button of document.querySelectorAll<HTMLButtonElement>('[data-download-only]')) button.disabled = unavailable;
+  const row = selectedCloudDevice();
+  libraryWorkspace.updateDevice({ deviceId: row?.serialNumber, name: row?.name || device?.name || '尚未连接设备', connected: ready, canDownload: ready && !recordingFilesBlocked(s.recording) && !!cloudSession?.authenticated, busy: blocked, status: recording.label, duration: recording.duration, battery: s.battery.data?.level, files: s.files.data || [], transfer: s.transfer, hint: ready ? recordingFilesHint(s.recording, true) : flow.connection === 'connecting' ? '设备连接中…' : '连接设备以读取录音，本机录音仍可使用' });
   put('files-updated', s.files.updated ? `目录更新于 ${new Date(s.files.updated).toLocaleTimeString('zh-CN', { hour12: false })} · ${s.files.data?.length ?? 0} 个文件` : '');
   show('transfer-panel', s.transfer.phase !== 'idle');
   put('transfer-title', transfer.label); put('transfer-session', s.transfer.sessionId === undefined ? '' : `ID ${s.transfer.sessionId}`);
@@ -611,29 +640,36 @@ async function exportRecording(recording: PlayableRecording, generation: number,
     downloadSaveNotice = `${format}文件已交给浏览器保存。${output.notice || (output.format === 'raw' ? '此文件仍为设备原始数据，尚未恢复为可播放音频。' : '')}`;
   }
 }
-async function downloadRecording(sessionId: number) {
-  const s = controller.snapshot;
-  if (choosing || watching || cloudBusy || audioExportBusy || s.busy || s.phase !== 'ready' || recordingFilesBlocked(s.recording)) return;
-  const generation = ++downloadGeneration;
-  const saveFormat = $<HTMLSelectElement>('save-format').value;
-  let exporting = false;
-  fallbackOgg = undefined; downloadSaveNotice = ''; render();
+let unsavedDeviceDownload: { result: PlayableRecording & { originalData: Uint8Array }; deviceId: string; accountId: string; sessionId: number } | undefined;
+async function downloadRecording(sessionId: number, options: DownloadOptions) {
+  const s = controller.snapshot, row = selectedCloudDevice(), accountId = cloudSession?.account?.accountId;
+  if (choosing || watching || cloudBusy || audioExportBusy || s.busy || s.phase !== 'ready' || recordingFilesBlocked(s.recording) || !row || !accountId) return;
+  const generation = ++downloadGeneration, deviceId = row.serialNumber; let failed = false;
+  fallbackOgg = undefined; downloadSaveNotice = ''; startAudioExport('正在检查本机是否已保存此录音…');
   try {
-    const result = await controller.download(sessionId);
+    if (await libraryWorkspace.reuseDeviceRecording(deviceId, sessionId, options, s.files.data?.find(file => file.sessionId === sessionId)?.size)) { downloadSaveNotice = options.transcribe ? '复用已保存的音频，已按你的选择准备转写。' : '此录音已保存在本机，无需重复下载。'; return; }
+    if (!activeAudioExport(generation)) return;
+    const pending = unsavedDeviceDownload;
+    const reused = pending && pending.deviceId === deviceId && pending.accountId === accountId && pending.sessionId === sessionId;
+    const result = reused ? pending.result : await controller.download(sessionId);
     if (!activeAudioExport(generation) || !result) return;
-    if (!canSaveCompletedDownload(controller.snapshot.transfer, sessionId)) {
-      downloadSaveNotice = '下载尚未完整完成，未保存文件。请检查下载状态后重试。'; return;
-    }
-    exporting = true; startAudioExport(saveFormat === 'wav' && result.format === 'ogg' ? '下载完整，正在本机转换为 WAV…' : '正在准备保存完整录音文件…');
-    await exportRecording(result, generation, saveFormat, true);
-  } catch {
-    if (activeAudioExport(generation)) downloadSaveNotice = '下载或保存未完成。请检查下方下载状态后重试；不会保存不完整文件。';
-  } finally { if (exporting) finishAudioExport(); else render(); }
+    if (!reused && !canSaveCompletedDownload(controller.snapshot.transfer, sessionId)) { downloadSaveNotice = '下载尚未完整完成，未保存文件。请重试。'; return; }
+    unsavedDeviceDownload = { result, deviceId, accountId, sessionId };
+    if (cloudSession?.account?.accountId !== accountId || selectedCloudDevice()?.serialNumber !== deviceId) return;
+    downloadSaveNotice = '下载完整，正在保存原件和 Ogg 到项目录音目录…'; render();
+    const saved = await libraryWorkspace.acceptDeviceDownload(result, deviceId, sessionId, options);
+    unsavedDeviceDownload = undefined;
+    downloadSaveNotice = saved.processingError?.message || (saved.recording.state === 'stored' ? options.transcribe ? '录音已保存，已按你的选择排队转写。' : 'Ogg 已保存到项目录音目录，尚未转写。' : '原始设备文件已保存，尚未恢复为可播放音频，未启动转写。');
+    await libraryWorkspace.showRecording(saved.recording.id, 'account');
+  } catch (error) {
+    failed = true;
+    downloadSaveNotice = `保存或处理未完成：${error instanceof Error ? error.message : '请重试'}。${unsavedDeviceDownload ? '完整录音仍保留在本页，再次操作可重试保存。' : '未保存不完整录音。'}`;
+  } finally { if (downloadSaveNotice) libraryWorkspace.reportDownload(downloadSaveNotice, failed); finishAudioExport(); }
 }
 async function recoverLocalRecording(file: File) {
   if (choosing || watching || cloudBusy || audioExportBusy || controller.snapshot.busy) return;
-  if (!file.size || file.size > MAX_WAV_INPUT_BYTES) {
-    fallbackOgg = undefined; downloadSaveNotice = '本机恢复支持非空且不超过 16 MiB 的文件。原文件保持不变。'; render(); return;
+  if (!file.size || file.size > 256 * 1024 * 1024) {
+    fallbackOgg = undefined; downloadSaveNotice = '本机恢复支持非空且不超过 256 MiB 的文件。大文件请保留 Ogg；原文件保持不变。'; render(); return;
   }
   const generation = ++downloadGeneration, saveFormat = $<HTMLSelectElement>('save-format').value;
   const number = Number(file.name.match(/(\d+)(?=\.[^.]+$)/)?.[1]);
@@ -662,7 +698,7 @@ function render() {
   put('phase', phases[s.phase]); $('phase').dataset.phase = s.phase;
   put('stage', s.stage); $('stage-dot').classList.toggle('active', controller.connected);
   put('error', s.error ?? ''); show('error', !!s.error);
-  for (const [id, disabled] of Object.entries({ choose: !supported || blocked || controller.connected, connect: blocked || !device || controller.connected, disconnect: !controller.connected && !s.busy, authorize: blocked || s.phase !== 'gatt', refresh: blocked || s.phase !== 'ready', advertisement: blocked || !device || controller.connected, import: blocked || controller.connected, 'clear-credentials': blocked || controller.connected, login: blocked || controller.connected, 'import-web-session': blocked || controller.connected, 'import-web-request': blocked || controller.connected, 'copy-session-export': !WEB_SESSION_EXPORT_READY || blocked || controller.connected, logout: cloudBusy || s.busy || choosing || watching })) ($<HTMLButtonElement>(id)).disabled = disabled;
+  for (const [id, disabled] of Object.entries({ choose: !supported || blocked || controller.connected, connect: blocked || !device || controller.connected, disconnect: !controller.connected && !s.busy, authorize: blocked || s.phase !== 'gatt', refresh: blocked || s.phase !== 'ready', advertisement: blocked || !device || controller.connected, import: blocked || controller.connected, 'clear-credentials': blocked || controller.connected, login: blocked || controller.connected, 'import-web-session': blocked || controller.connected, 'import-web-request': blocked || controller.connected, 'copy-session-export': !WEB_SESSION_EXPORT_READY || blocked || controller.connected, logout: blocked })) ($<HTMLButtonElement>(id)).disabled = disabled;
   for (const el of document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('.auth-panel input:not([type=file]), .auth-panel textarea')) el.disabled = cloudBusy || s.busy || audioExportBusy || controller.connected;
   for (const id of ['login-email', 'login-password', 'web-session-json', 'web-request-authorization', 'web-request-api-domain', 'remember-account']) input(id).disabled = blocked || controller.connected;
   input('all-devices').disabled = blocked || controller.connected;
@@ -748,15 +784,13 @@ function cancelFlowConnection() {
   cloudGeneration++; controllerFlowOperation = undefined; transition({ type: 'cancel-connect' });
   stopWatching(); controller.disconnect(); put('cloud-notice', cloudBusy ? '连接已取消，正在结束认证材料准备，请稍候。' : '连接已取消，可重新选择设备。'); render();
 }
-for (const id of ['flow-cancel', 'flow-inline-cancel']) $(id).addEventListener('click', cancelFlowConnection);
-$('flow-switch-device').addEventListener('click', () => { invalidateAudioExport(); controller.disconnect(); transition({ type: 'open-devices' }); render(); });
-$('flow-open-settings').addEventListener('click', () => {
-  if (flow.screen === 'workspace') transition({ type: 'tab', tab: 'settings' });
-  else standaloneSettings = true;
-  render();
-});
-$('flow-close-settings').addEventListener('click', () => { standaloneSettings = false; render(); });
-for (const tab of ['overview', 'recordings', 'settings'] as WorkspaceTab[]) $('tab-' + tab).addEventListener('click', () => { transition({ type: 'tab', tab }); render(); });
+$('flow-cancel').addEventListener('click', cancelFlowConnection);
+function switchDevice() {
+  invalidateAudioExport(); controller.disconnect(); transition({ type: 'open-devices' }); overlay.open('device'); render();
+}
+$('flow-switch-device').addEventListener('click', switchDevice);
+$('flow-open-settings').addEventListener('click', () => overlay.open('settings'));
+$('settings-login').addEventListener('click', () => overlay.open('device'));
 $('save-format').addEventListener('change', () => {
   audioFormatRevision++;
   const accountId = cloudSession?.account?.accountId, format = $<HTMLSelectElement>('save-format').value === 'ogg' ? 'ogg' : 'wav';
@@ -895,8 +929,8 @@ async function logoutAccount(forgetLocalData = false) {
   const accountId = cloudSession?.account?.accountId;
   const generation = ++cloudGeneration, operation = beginCloudOperation();
   accountPreferencesGeneration++; devicePreferences.clear(); chosenFor = undefined; controllerFlowOperation = undefined;
-  transition({ type: 'logout' }); standaloneSettings = false;
-  invalidateAudioExport(); stopWatching(); controller.disconnect(true); device = undefined; clearCloudMaterials();
+  transition({ type: 'logout' });
+  unsavedDeviceDownload = undefined; invalidateAudioExport(); stopWatching(); controller.disconnect(true); device = undefined; clearCloudMaterials();
   cloudSession = undefined; renderCloudSession(); input('login-password').value = '';
   put('device-name', '等待选择设备'); put('device-id', '点击下方按钮打开浏览器设备列表');
   put('cloud-notice', '正在退出本地登录会话…');
@@ -904,14 +938,14 @@ async function logoutAccount(forgetLocalData = false) {
     if (forgetLocalData && accountId) await preferences.clearAccount(accountId);
     const session = await cloud.logout(forgetLocalData);
     if (generation !== cloudGeneration) return;
-    cloudSession = session; renderCloudSession(); put('cloud-notice', forgetLocalData ? '已退出并清除本机数据。' : '已退出登录，历史录音密钥继续加密保留在本机。'); log('已退出 PLAUD 本地会话');
+    cloudSession = session; renderCloudSession(); put('cloud-notice', forgetLocalData ? '已退出并移除账号授权与解密材料，录音库资料已保留。' : '已退出登录，历史录音密钥继续加密保留在本机。'); log('已退出 PLAUD 本地会话');
   } catch (e) { if (generation === cloudGeneration) cloudFailure(e); }
   finally { finishCloudOperation(operation); }
 }
 $('logout').addEventListener('click', () => { void logoutAccount(); });
 $('devices-logout').addEventListener('click', () => { void logoutAccount(); });
 $('forget-local-data').addEventListener('click', () => {
-  if (window.confirm('确认退出并清除本机数据？本机保存的登录授权、RSA 历史密钥和设备偏好将被删除，旧录音可能无法恢复。已下载的文件不会删除。')) void logoutAccount(true);
+  if (window.confirm('确认退出并移除账号授权与解密材料？本机登录授权、RSA 历史密钥和设备偏好将被删除，旧设备文件可能无法解密。录音库中的音频和全文不会删除，可在录音资料中单独移入回收站。')) void logoutAccount(true);
 });
 for (const field of document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('.auth-panel input:not([type=file]):not(#port), .auth-panel textarea')) {
   field.addEventListener('input', () => {
@@ -935,4 +969,10 @@ async function environment() {
     try { if (!await navigator.bluetooth.getAvailability()) { put('env-text', '蓝牙当前不可用，请打开电脑蓝牙并检查系统权限。'); } } catch { /* 浏览器未开放可用性检测，保留 API 支持提示。 */ }
   }
 }
-render(); void environment(); void prefetchAuthorizedDevices(); void restoreCloudSession();
+render(); void environment(); void prefetchAuthorizedDevices();
+// The workspace is immediately usable; account recovery never replaces the page.
+void libraryWorkspace.open();
+// Establish the local cookie before the independent, potentially slow cloud restore.
+void libraryWorkspace.initialize().catch(() => {}).finally(() => {
+  void restoreCloudSession().finally(() => libraryWorkspace.refreshIdentity());
+});

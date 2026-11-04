@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; media-src 'self' file: blob:; connect-src 'none'; img-src data:; base-uri 'none'; form-action 'none'">
+<title>RecDock · 长音频核对</title><style>__STYLE__</style></head>
+<body>
+<aside class="sidebar"><div class="brand"><span class="brandmark">R</span>RecDock <span class="local">本地</span></div>
+<p class="eyebrow">录音资料</p><nav id="recordings" aria-label="选择录音"></nav>
+<div class="sidebar-note">原始录音与转写保存在本机。<br>这里的修改会保留为独立校对稿。</div>
+<div class="speaker-heading"><p class="eyebrow">讲话人</p><span id="speaker-count"></span></div>
+<p class="small muted">点击名称可修改，例如“主持人”。编号来自整条录音的自动分组。</p><div id="speakers"></div>
+</aside>
+<main>
+<header><div class="breadcrumb">录音资料 <span>/</span> 转写核对</div><div class="heading-row"><div><h1 id="title"></h1><p id="subtitle" class="muted"></p></div><span class="status-badge">自动转写 · 待核对</span></div>
+<div class="action-row"><div class="export-group"><button id="export-md" class="primary">导出全文 Markdown</button><button id="export-txt">导出 TXT</button><button id="manage-speakers">编辑讲话人</button><button id="backup">备份校对稿</button><button id="import">恢复校对稿</button><input type="file" id="import-file" accept="application/json,.json" hidden></div><span id="save-status" role="status"></span></div>
+<div class="notice" id="notice">文字、时间和讲话人均为模型候选结果。点击时间回听后，可编辑并标记本段已核对。</div>
+<div class="summary"><div><span>全文段落</span><strong id="paragraph-count"></strong></div><div><span>已核对</span><strong id="review-count"></strong></div><div><span>讲话人待确认</span><strong id="uncertain-count"></strong></div><div><span>建议抽查</span><strong id="target-duration"></strong></div></div>
+</header>
+<section class="transcript" aria-label="转写全文"><div class="toolbar"><div class="tabs"><button class="tab selected" data-mode="all">全部段落</button><button class="tab" data-mode="targets">重点核对</button><button class="tab" data-mode="issues">有疑问</button><button class="tab" data-mode="unreviewed">未核对</button></div><div class="filters"><input type="search" id="search" placeholder="搜索全文…" aria-label="搜索全文"><select id="speaker-filter" aria-label="筛选讲话人"></select></div></div>
+<div class="list-meta"><span id="results-count"></span><label><input type="checkbox" id="follow" checked> 跟随播放</label></div>
+<p id="target-note" class="target-note" hidden>这里覆盖开头、中间、结尾及困难片段。抽样核对不代表整条录音均已核对。</p>
+<div id="paragraphs"></div><div class="pagination"><button id="prev">上一页</button><span id="page"></span><button id="next">下一页</button></div>
+</section><footer>原始模型结果保持原样。校对稿与导出包含来源指纹；导出始终包含整条录音，筛选不会删减全文。</footer>
+</main>
+<div class="player"><div class="player-inner"><div class="now-playing"><span class="playing-dot"></span><strong id="player-title">录音回听</strong><span id="clock">00:00:00</span></div><audio id="audio" controls preload="metadata"></audio><div class="player-options"><button id="back">−5 秒</button><button id="forward">＋5 秒</button><label>速度 <select id="speed"><option value="0.75">0.75×</option><option value="1" selected>1×</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="2">2×</option></select></label><span id="audio-status" role="status"></span></div></div></div>
+<script id="recording-data" type="application/json">__DATA__</script><script>__SCRIPT__</script></body></html>

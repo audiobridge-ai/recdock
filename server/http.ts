@@ -8,6 +8,7 @@ import { accountEntry, cachedDevice, compatibleMemory, injectAccountKeys, offlin
 import type { PersistenceStore } from './session-memory.ts';
 import { NativeDeviceDiscovery } from './device-discovery.ts';
 import type { DeviceDetector } from './device-discovery.ts';
+import type { LibraryContext } from './library/http.ts';
 
 interface LocalSession {
   id: string; csrf: string; expires: number; generation: number;
@@ -51,7 +52,11 @@ function allowLocalRequest(req: IncomingMessage) {
   }
 }
 
-export function createCloudMiddleware(client: Client = new PlaudCloudClient(), now = Date.now, options: { store?: PersistenceStore; detectDevice?: DeviceDetector } = {}) {
+export function createCloudMiddleware(client: Client = new PlaudCloudClient(), now = Date.now, options: {
+  store?: PersistenceStore; detectDevice?: DeviceDetector;
+  library?: (req: IncomingMessage, res: ServerResponse, context: LibraryContext) => Promise<void>;
+  onAccountGranted?: (accountId: string) => Promise<void>; onAccountRevoked?: (accountId: string) => Promise<void>;
+} = {}) {
   const store = options.store ?? new Vault();
   const detectDevice = options.detectDevice ?? new NativeDeviceDiscovery().detect;
   let persistence = { available: true, hasSavedAccount: false, error: undefined as string | undefined };
@@ -167,7 +172,16 @@ export function createCloudMiddleware(client: Client = new PlaudCloudClient(), n
           if (restored && epoch === restoreEpoch && sessions.get(session.id) === session) Object.assign(session, restored, { remember: true });
         }
         session.expires = now() + ttl;
+        if (session.auth) await options.onAccountGranted?.(session.auth.account.accountId);
         send(res, 200, publicSession(session)); return;
+      }
+      if (path.startsWith('/api/library/') && options.library) {
+        if (!session && path === '/api/library/context' && req.method === 'GET') session = fresh(res);
+        if (!session) throw failure('CSRF_REJECTED', '本地会话已变化，请刷新页面后重试', 403);
+        if (!['GET', 'HEAD'].includes(req.method || '') && (typeof req.headers['x-csrf-token'] !== 'string' || !sameToken(req.headers['x-csrf-token'], session.csrf))) throw failure('CSRF_REJECTED', '本地会话已变化，请刷新页面后重试', 403);
+        session.expires = now() + ttl;
+        await options.library(req, res, { accountId: session.auth?.account.accountId, deviceIds: session.auth?.devices.map(d => d.serialNumber) || [], csrfToken: session.csrf });
+        return;
       }
       if (req.method !== 'POST') throw failure('METHOD_NOT_ALLOWED', '此接口仅支持 POST 请求', 405);
       if (!session || typeof req.headers['x-csrf-token'] !== 'string' || !sameToken(req.headers['x-csrf-token'], session.csrf)) {
@@ -191,6 +205,7 @@ export function createCloudMiddleware(client: Client = new PlaudCloudClient(), n
             delete draft.activeAccountId;
           }); persistence.hasSavedAccount = false;
         } catch { persistenceError(); }
+        if (accountId) await options.onAccountRevoked?.(accountId);
         const nextSession = fresh(res); nextSession.restored = true;
         send(res, 200, publicSession(nextSession)); return;
       }
@@ -212,12 +227,14 @@ export function createCloudMiddleware(client: Client = new PlaudCloudClient(), n
         if (data.remember !== undefined && typeof data.remember !== 'boolean') throw failure('CONSENT_INVALID', '请明确选择是否记住登录');
         const auth = await client.login(email, password, 'auto'); live();
         const memory = await loadAccount(auth.account.accountId); live(); injectAccountKeys(auth, memory);
+        if (session.auth && session.auth.account.accountId !== auth.account.accountId && ![...sessions.values()].some(other => other !== session && other.auth?.account.accountId === session!.auth!.account.accountId)) await options.onAccountRevoked?.(session.auth.account.accountId);
         session.auth = auth; session.remember = data.remember !== false; session.memory = memory;
         // A fresh explicit login starts a new bounded offline grace period.
         restoreEpoch++;
         await save(session, live, true); live();
         sessions.delete(session.id);
         const authenticated = fresh(res, auth); authenticated.remember = session.remember; authenticated.memory = session.memory;
+        await options.onAccountGranted?.(auth.account.accountId);
         send(res, 200, publicSession(authenticated)); return;
       }
       if (path === '/api/import-session') {
@@ -228,12 +245,14 @@ export function createCloudMiddleware(client: Client = new PlaudCloudClient(), n
         if (data.remember !== undefined && typeof data.remember !== 'boolean') throw failure('CONSENT_INVALID', '请明确选择是否记住登录');
         const auth = await client.importSession(data.userToken, data.userApiDomain); live();
         const memory = await loadAccount(auth.account.accountId); live(); injectAccountKeys(auth, memory);
+        if (session.auth && session.auth.account.accountId !== auth.account.accountId && ![...sessions.values()].some(other => other !== session && other.auth?.account.accountId === session!.auth!.account.accountId)) await options.onAccountRevoked?.(session.auth.account.accountId);
         session.auth = auth; session.remember = data.remember !== false; session.memory = memory;
         // A fresh explicit login starts a new bounded offline grace period.
         restoreEpoch++;
         await save(session, live, true); live();
         sessions.delete(session.id);
         const authenticated = fresh(res, auth); authenticated.remember = session.remember; authenticated.memory = session.memory;
+        await options.onAccountGranted?.(auth.account.accountId);
         send(res, 200, publicSession(authenticated)); return;
       }
       if (path === '/api/detect-device') {

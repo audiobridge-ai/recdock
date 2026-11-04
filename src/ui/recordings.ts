@@ -42,7 +42,7 @@ export function recordingFilesHint(status: RecordingStatus, ready: boolean): str
   if (status.mode === 'recording' || status.mode === 'paused') return '设备正在录音或录音已暂停，目录读取与下载暂缓。请先在设备上结束录音，再刷新状态。';
   if (status.mode === 'transferring') return '设备正处于文件传输状态，请等待传输结束后再刷新目录或下载其他文件。';
   if (status.mode === 'unknown') return '录音状态尚未确认。刷新目录或下载时会先检查设备是否空闲。';
-  return '会话 ID 是设备文件标识，不代表录音时间。录音文件仅保留在内存和你主动保存的本机文件中。';
+  return '会话 ID 是设备文件标识，不代表录音时间。完整下载的录音会保存到项目目录；可选择仅下载或下载并转写。';
 }
 
 export function recordingFileView(file: RecordingFile) {

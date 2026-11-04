@@ -1,12 +1,26 @@
 import { defineConfig } from 'vite';
-import { createCloudMiddleware } from './server/http.ts';
+import { createApplication } from './server/application.ts';
 
 export default defineConfig({
-  server: { host: 'localhost', port: 5173, strictPort: true },
+  server: {
+    host: 'localhost', port: 5173, strictPort: true,
+    watch: { ignored: ['**/.local-audio/**', '**/worker/.venv/**', '**/__pycache__/**', '**/.pytest_cache/**'] },
+    fs: { strict: true, deny: ['.env', '.env.*', '*.{crt,pem,key}', '**/.git/**', '**/.local-audio/**', '**/worker/.venv/**', '**/credentials*.json'] },
+  },
   preview: { host: 'localhost' },
   plugins: [{
     name: 'plaud-local-login',
-    configureServer(server) { server.middlewares.use(createCloudMiddleware()); },
-    configurePreviewServer(server) { server.middlewares.use(createCloudMiddleware()); },
+    configureServer(server) {
+      const app = createApplication(); server.middlewares.use(app.middleware);
+      server.httpServer?.once('close', () => { void app.close(); });
+      const stop = () => { void app.close().finally(() => process.exit(0)); };
+      process.once('SIGTERM', stop); process.once('SIGINT', stop);
+    },
+    configurePreviewServer(server) {
+      const app = createApplication(); server.middlewares.use(app.middleware);
+      server.httpServer.once('close', () => { void app.close(); });
+      const stop = () => { void app.close().finally(() => process.exit(0)); };
+      process.once('SIGTERM', stop); process.once('SIGINT', stop);
+    },
   }],
 });

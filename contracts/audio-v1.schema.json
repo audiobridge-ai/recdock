@@ -1,0 +1,1529 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://recdock.local/contracts/audio-v1",
+  "title": "RecDock local audio contracts v1",
+  "$defs": {
+    "Score": {
+      "type": "object",
+      "properties": {
+        "engine": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "kind": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "value": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "engine",
+        "kind",
+        "value"
+      ],
+      "additionalProperties": false
+    },
+    "Model": {
+      "type": "object",
+      "properties": {
+        "engine": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "model": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "revision": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "quantization": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "engine",
+        "model",
+        "revision",
+        "quantization"
+      ],
+      "additionalProperties": false
+    },
+    "Asset": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z]+_[A-Za-z0-9_-]{1,120}$"
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "original",
+            "playable"
+          ]
+        },
+        "relativePath": {
+          "type": "string",
+          "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*[\\\\:])[A-Za-z0-9_./-]+$"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "mimeType": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      },
+      "required": [
+        "id",
+        "role",
+        "relativePath",
+        "sha256",
+        "bytes",
+        "mimeType"
+      ],
+      "additionalProperties": false
+    },
+    "Recording": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z]+_[A-Za-z0-9_-]{1,120}$"
+        },
+        "scopeId": {
+          "type": "string",
+          "pattern": "^[a-z]+_[A-Za-z0-9_-]{1,120}$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "source": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [
+                "import",
+                "ble"
+              ]
+            },
+            "deviceId": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "sessionId": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "kind",
+            "deviceId",
+            "sessionId"
+          ],
+          "additionalProperties": false
+        },
+        "sourceSha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "durationMs": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "createdAtMs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "stored",
+            "needs_recovery",
+            "unsupported",
+            "deleted"
+          ]
+        },
+        "assets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Asset"
+          }
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "id",
+        "scopeId",
+        "title",
+        "source",
+        "sourceSha256",
+        "durationMs",
+        "createdAtMs",
+        "state",
+        "assets"
+      ],
+      "additionalProperties": false
+    },
+    "Speaker": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^SPEAKER_[0-9]{2,}$"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "nameSource": {
+          "type": "string",
+          "enum": [
+            "default",
+            "user"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "displayName",
+        "nameSource"
+      ],
+      "additionalProperties": false
+    },
+    "Word": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "startMs": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "endMs": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "timingSource": {
+          "type": "string",
+          "enum": [
+            "forced_alignment",
+            "segment",
+            "unavailable"
+          ]
+        },
+        "scores": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Score"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "text",
+        "startMs",
+        "endMs",
+        "timingSource",
+        "scores"
+      ],
+      "additionalProperties": false
+    },
+    "Segment": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z]+_[A-Za-z0-9_-]{1,120}$"
+        },
+        "startMs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "endMs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "speakerId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^SPEAKER_[0-9]{2,}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 10000
+        },
+        "timingSource": {
+          "type": "string",
+          "enum": [
+            "forced_alignment",
+            "asr_segment",
+            "user_pending"
+          ]
+        },
+        "overlap": {
+          "type": "boolean"
+        },
+        "flags": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "speaker_uncertain",
+              "unaligned",
+              "user_edited",
+              "pending_alignment",
+              "overlap"
+            ]
+          }
+        },
+        "sourceChunkIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z]+_[A-Za-z0-9_-]{1,120}$"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "words": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Word"
+          }
+        },
+        "scores": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Score"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "startMs",
+        "endMs",
+        "speakerId",
+        "text",
+        "timingSource",
+        "overlap",
+        "flags",
+        "sourceChunkIds",
+        "words",
+        "scores"
+      ],
+      "additionalProperties": false
+    },
+    "SpeakerTurn": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z]+_[A-Za-z0-9_-]{1,120}$"
+        },
+        "startMs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "endMs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "speakerId": {
+          "type": "string",
+          "pattern": "^SPEAKER_[0-9]{2,}$"
+        },
+        "overlap": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "startMs",
+        "endMs",
+        "speakerId",
+        "overlap"
+      ],
+      "additionalProperties": false
+    },
+    "Chunk": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z]+_[A-Za-z0-9_-]{1,120}$"
+        },
+        "startMs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "endMs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "paddingLeftMs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "paddingRightMs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "ready",
+            "failed",
+            "skipped"
+          ]
+        },
+        "errorCode": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "startMs",
+        "endMs",
+        "paddingLeftMs",
+        "paddingRightMs",
+        "status",
+        "errorCode"
+      ],
+      "additionalProperties": false
+    },
+    "Transcript": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "recordingId": {
+          "type": "string",
+          "pattern": "^[a-z]+_[A-Za-z0-9_-]{1,120}$"
+        },
+        "sourceSha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "durationMs": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "revisionId": {
+          "type": "string",
+          "pattern": "^[a-z]+_[A-Za-z0-9_-]{1,120}$"
+        },
+        "language": {
+          "type": "string",
+          "pattern": "^[a-z]{2,3}(-[A-Za-z0-9]+)*$"
+        },
+        "provenance": {
+          "type": "object",
+          "properties": {
+            "pipelineVersion": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "asr": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Model"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "aligner": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Model"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "diarizer": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Model"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "pipelineVersion",
+            "asr",
+            "aligner",
+            "diarizer"
+          ],
+          "additionalProperties": false
+        },
+        "speakers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Speaker"
+          }
+        },
+        "segments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Segment"
+          }
+        },
+        "speakerTurns": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SpeakerTurn"
+          }
+        },
+        "chunks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Chunk"
+          }
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "recordingId",
+        "sourceSha256",
+        "durationMs",
+        "revisionId",
+        "language",
+        "provenance",
+        "speakers",
+        "segments",
+        "speakerTurns",
+        "chunks"
+      ],
+      "additionalProperties": false
+    },
+    "Job": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z]+_[A-Za-z0-9_-]{1,120}$"
+        },
+        "recordingId": {
+          "type": "string",
+          "pattern": "^[a-z]+_[A-Za-z0-9_-]{1,120}$"
+        },
+        "scopeId": {
+          "type": "string",
+          "pattern": "^[a-z]+_[A-Za-z0-9_-]{1,120}$"
+        },
+        "pipelineFingerprint": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "queued",
+            "running",
+            "succeeded",
+            "failed",
+            "cancelled",
+            "interrupted",
+            "paused"
+          ]
+        },
+        "stage": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "preparing",
+                "transcribing",
+                "aligning",
+                "diarizing",
+                "merging",
+                "exporting"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "createdAtMs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "updatedAtMs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "completedStages": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "preparing",
+              "transcribing",
+              "aligning",
+              "diarizing",
+              "merging",
+              "exporting"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "error": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "retryable": {
+                  "type": "boolean"
+                },
+                "message": {
+                  "type": "string",
+                  "maxLength": 2000
+                }
+              },
+              "required": [
+                "code",
+                "retryable",
+                "message"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "id",
+        "recordingId",
+        "scopeId",
+        "pipelineFingerprint",
+        "state",
+        "stage",
+        "createdAtMs",
+        "updatedAtMs",
+        "completedStages",
+        "error"
+      ],
+      "additionalProperties": false
+    },
+    "Revision": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z]+_[A-Za-z0-9_-]{1,120}$"
+        },
+        "recordingId": {
+          "type": "string",
+          "pattern": "^[a-z]+_[A-Za-z0-9_-]{1,120}$"
+        },
+        "baseRevisionId": {
+          "type": "string",
+          "pattern": "^[a-z]+_[A-Za-z0-9_-]{1,120}$"
+        },
+        "createdAtMs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "changes": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "const": "speaker_name"
+                  },
+                  "speakerId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "displayName": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  }
+                },
+                "required": [
+                  "kind",
+                  "speakerId",
+                  "displayName"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "const": "segment_text"
+                  },
+                  "segmentId": {
+                    "type": "string",
+                    "pattern": "^[a-z]+_[A-Za-z0-9_-]{1,120}$"
+                  },
+                  "text": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 10000
+                  }
+                },
+                "required": [
+                  "kind",
+                  "segmentId",
+                  "text"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "const": "segment_speaker"
+                  },
+                  "segmentId": {
+                    "type": "string",
+                    "pattern": "^[a-z]+_[A-Za-z0-9_-]{1,120}$"
+                  },
+                  "speakerId": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "minLength": 1,
+                    "maxLength": 256
+                  }
+                },
+                "required": [
+                  "kind",
+                  "segmentId",
+                  "speakerId"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "const": "segment_time"
+                  },
+                  "segmentId": {
+                    "type": "string",
+                    "pattern": "^[a-z]+_[A-Za-z0-9_-]{1,120}$"
+                  },
+                  "startMs": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "endMs": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                },
+                "required": [
+                  "kind",
+                  "segmentId",
+                  "startMs",
+                  "endMs"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "const": "segment_reviewed"
+                  },
+                  "segmentId": {
+                    "type": "string",
+                    "pattern": "^[a-z]+_[A-Za-z0-9_-]{1,120}$"
+                  },
+                  "reviewed": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "segmentId",
+                  "reviewed"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          }
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "id",
+        "recordingId",
+        "baseRevisionId",
+        "createdAtMs",
+        "changes"
+      ],
+      "additionalProperties": false
+    },
+    "Sync": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z]+_[A-Za-z0-9_-]{1,120}$"
+        },
+        "recordingId": {
+          "type": "string",
+          "pattern": "^[a-z]+_[A-Za-z0-9_-]{1,120}$"
+        },
+        "revisionId": {
+          "type": "string",
+          "pattern": "^[a-z]+_[A-Za-z0-9_-]{1,120}$"
+        },
+        "targetId": {
+          "type": "string",
+          "pattern": "^[a-z]+_[A-Za-z0-9_-]{1,120}$"
+        },
+        "contentSha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "prepared",
+            "attached",
+            "submitted",
+            "verified",
+            "failed",
+            "user_action_required"
+          ]
+        },
+        "remoteReference": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 2048
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "updatedAtMs": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "id",
+        "recordingId",
+        "revisionId",
+        "targetId",
+        "contentSha256",
+        "state",
+        "remoteReference",
+        "updatedAtMs"
+      ],
+      "additionalProperties": false
+    },
+    "WorkerEvent": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "protocolVersion": {
+              "const": 1
+            },
+            "jobId": {
+              "type": "null"
+            },
+            "sequence": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "event": {
+              "const": "ready"
+            },
+            "stage": {
+              "type": "null"
+            },
+            "payload": {
+              "type": "object",
+              "properties": {
+                "workerVersion": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "capabilities": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "preparing",
+                      "transcribing",
+                      "aligning",
+                      "diarizing",
+                      "merging",
+                      "exporting"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "workerVersion",
+                "capabilities"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "protocolVersion",
+            "jobId",
+            "sequence",
+            "event",
+            "stage",
+            "payload"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "protocolVersion": {
+              "const": 1
+            },
+            "jobId": {
+              "type": "string",
+              "pattern": "^[a-z]+_[A-Za-z0-9_-]{1,120}$"
+            },
+            "sequence": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "event": {
+              "const": "stage_started"
+            },
+            "stage": {
+              "type": "string",
+              "enum": [
+                "preparing",
+                "transcribing",
+                "aligning",
+                "diarizing",
+                "merging",
+                "exporting"
+              ]
+            },
+            "payload": {
+              "type": "object",
+              "properties": {
+                "inputFingerprint": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "required": [
+                "inputFingerprint"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "protocolVersion",
+            "jobId",
+            "sequence",
+            "event",
+            "stage",
+            "payload"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "protocolVersion": {
+              "const": 1
+            },
+            "jobId": {
+              "type": "string",
+              "pattern": "^[a-z]+_[A-Za-z0-9_-]{1,120}$"
+            },
+            "sequence": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "event": {
+              "const": "progress"
+            },
+            "stage": {
+              "type": "string",
+              "enum": [
+                "preparing",
+                "transcribing",
+                "aligning",
+                "diarizing",
+                "merging",
+                "exporting"
+              ]
+            },
+            "payload": {
+              "type": "object",
+              "properties": {
+                "completedUnits": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "totalUnits": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "unit": {
+                  "type": "string",
+                  "enum": [
+                    "chunks",
+                    "milliseconds",
+                    "steps"
+                  ]
+                }
+              },
+              "required": [
+                "completedUnits",
+                "totalUnits",
+                "unit"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "protocolVersion",
+            "jobId",
+            "sequence",
+            "event",
+            "stage",
+            "payload"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "protocolVersion": {
+              "const": 1
+            },
+            "jobId": {
+              "type": "string",
+              "pattern": "^[a-z]+_[A-Za-z0-9_-]{1,120}$"
+            },
+            "sequence": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "event": {
+              "const": "artifact"
+            },
+            "stage": {
+              "type": "string",
+              "enum": [
+                "preparing",
+                "transcribing",
+                "aligning",
+                "diarizing",
+                "merging",
+                "exporting"
+              ]
+            },
+            "payload": {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "relativePath": {
+                  "type": "string",
+                  "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*[\\\\:])[A-Za-z0-9_./-]+$"
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "required": [
+                "kind",
+                "relativePath",
+                "sha256"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "protocolVersion",
+            "jobId",
+            "sequence",
+            "event",
+            "stage",
+            "payload"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "protocolVersion": {
+              "const": 1
+            },
+            "jobId": {
+              "type": "string",
+              "pattern": "^[a-z]+_[A-Za-z0-9_-]{1,120}$"
+            },
+            "sequence": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "event": {
+              "const": "completed"
+            },
+            "stage": {
+              "type": "null"
+            },
+            "payload": {
+              "type": "object",
+              "properties": {
+                "transcriptRelativePath": {
+                  "type": "string",
+                  "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*[\\\\:])[A-Za-z0-9_./-]+$"
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "required": [
+                "transcriptRelativePath",
+                "sha256"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "protocolVersion",
+            "jobId",
+            "sequence",
+            "event",
+            "stage",
+            "payload"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "protocolVersion": {
+              "const": 1
+            },
+            "jobId": {
+              "type": "string",
+              "pattern": "^[a-z]+_[A-Za-z0-9_-]{1,120}$"
+            },
+            "sequence": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "event": {
+              "const": "failed"
+            },
+            "stage": {
+              "type": "null"
+            },
+            "payload": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "message": {
+                  "type": "string",
+                  "maxLength": 2000
+                },
+                "retryable": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "code",
+                "message",
+                "retryable"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "protocolVersion",
+            "jobId",
+            "sequence",
+            "event",
+            "stage",
+            "payload"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "protocolVersion": {
+              "const": 1
+            },
+            "jobId": {
+              "type": "string",
+              "pattern": "^[a-z]+_[A-Za-z0-9_-]{1,120}$"
+            },
+            "sequence": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "event": {
+              "const": "cancelled"
+            },
+            "stage": {
+              "type": "null"
+            },
+            "payload": {
+              "type": "object",
+              "properties": {
+                "reason": {
+                  "type": "string",
+                  "enum": [
+                    "user",
+                    "logout",
+                    "shutdown"
+                  ]
+                }
+              },
+              "required": [
+                "reason"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "protocolVersion",
+            "jobId",
+            "sequence",
+            "event",
+            "stage",
+            "payload"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "protocolVersion": {
+              "const": 1
+            },
+            "jobId": {
+              "type": "string",
+              "pattern": "^[a-z]+_[A-Za-z0-9_-]{1,120}$"
+            },
+            "sequence": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "event": {
+              "const": "heartbeat"
+            },
+            "stage": {
+              "type": "null"
+            },
+            "payload": {
+              "type": "object",
+              "properties": {
+                "elapsedMs": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "elapsedMs"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "protocolVersion",
+            "jobId",
+            "sequence",
+            "event",
+            "stage",
+            "payload"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "WorkerCommand": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "protocolVersion": {
+              "const": 1
+            },
+            "jobId": {
+              "type": "string",
+              "pattern": "^[a-z]+_[A-Za-z0-9_-]{1,120}$"
+            },
+            "command": {
+              "const": "run"
+            },
+            "payload": {
+              "type": "object",
+              "properties": {
+                "recordingId": {
+                  "type": "string",
+                  "pattern": "^[a-z]+_[A-Za-z0-9_-]{1,120}$"
+                },
+                "sourceAssetId": {
+                  "type": "string",
+                  "pattern": "^[a-z]+_[A-Za-z0-9_-]{1,120}$"
+                },
+                "pipelineFingerprint": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "language": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "minSpeakers": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 100
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "maxSpeakers": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 100
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "recordingId",
+                "sourceAssetId",
+                "pipelineFingerprint",
+                "language",
+                "minSpeakers",
+                "maxSpeakers"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "protocolVersion",
+            "jobId",
+            "command",
+            "payload"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "protocolVersion": {
+              "const": 1
+            },
+            "jobId": {
+              "type": "string",
+              "pattern": "^[a-z]+_[A-Za-z0-9_-]{1,120}$"
+            },
+            "command": {
+              "const": "cancel"
+            },
+            "payload": {
+              "type": "object",
+              "properties": {
+                "reason": {
+                  "type": "string",
+                  "enum": [
+                    "user",
+                    "logout",
+                    "shutdown"
+                  ]
+                }
+              },
+              "required": [
+                "reason"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "protocolVersion",
+            "jobId",
+            "command",
+            "payload"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    }
+  }
+}

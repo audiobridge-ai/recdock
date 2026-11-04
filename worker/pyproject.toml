@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "recdock-audio"
+version = "0.1.0"
+description = "Local audio feasibility tools and shared contracts for RecDock"
+requires-python = ">=3.11,<3.13"
+dependencies = ["jsonschema==4.26.0"]
+
+[project.optional-dependencies]
+models = [
+  "mlx-audio[stt]==0.6.4; platform_system == 'Darwin' and platform_machine == 'arm64'",
+  "pyannote.audio==4.0.7",
+  "torch==2.8.0",
+  "torchaudio==2.8.0",
+  "torchcodec==0.7.0",
+  "transformers==5.14.0",
+  "huggingface-hub>=1.0,<2",
+]
+
+[project.scripts]
+recdock-audio-check = "recdock_audio.preflight:main"
+recdock-audio-benchmark = "recdock_audio.benchmark:main"
+
+[tool.setuptools.packages.find]
+include = ["recdock_audio*"]
+
+[tool.setuptools.package-data]
+recdock_audio = ["review_assets/*"]

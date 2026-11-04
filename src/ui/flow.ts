@@ -134,7 +134,7 @@ export function connectionChoice(accountId: string, serialNumber: string, bindin
   return { kind: 'choose' };
 }
 
-export function savedAudioFormat(value: unknown): 'wav' | 'ogg' { return value === 'ogg' ? 'ogg' : 'wav'; }
+export function savedAudioFormat(value: unknown): 'wav' | 'ogg' { return value === 'wav' ? 'wav' : 'ogg'; }
 
 export function cloudFailureAction(code: string, status: number, authenticatedBle: boolean): 'keep-device' | 'retry' | 'login' | 'report' {
   const authorization = status === 401 || code === 'LOGIN_EXPIRED' || code === 'SESSION_EXPIRED';

@@ -21,6 +21,12 @@ void (async () => {
     const path = typeof input === 'string' ? input : input.url;
     if (!path.startsWith('/api/')) return originalFetch(input, options);
     trace.push({ type: path.split('/').at(-1), ...(path === '/api/prepare-device' ? { automatic: JSON.parse(options.body).allowKeyInitialization === true } : {}) });
+    if (path.startsWith('/api/library/')) {
+      const data = path.startsWith('/api/library/context')
+        ? { csrfToken: session.csrfToken, accountAvailable: true, identity: 'scope_uiverification', environment: { available: false, missing: ['此页面仅验证模拟连接，不运行模型'], maxBytes: 1024 ** 3 } }
+        : { items: [], total: 0, nextCursor: null };
+      return new Response(JSON.stringify(data), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }
     const data = path === '/api/detect-device' ? { serialNumber, portVersion: 9, firmware: 'V123', source: 'native-advertisement' } : path === '/api/prepare-device' ? {
       device: session.devices[0], source: 'cache', portSource: 'verified',
       credentials: { accountId, serialNumber, portVersion: 9, bindingToken: '', rsa: { snSignature: '', publicKeyPem: '', privateKeyPem: '', alternateCommand: false },

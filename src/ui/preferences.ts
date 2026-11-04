@@ -98,7 +98,7 @@ export class WorkspacePreferences {
     const key = this.formatKey(accountId);
     const result = await this.run<unknown>('readonly', undefined, (store, set) => { const request = store.get(key); request.onsuccess = () => set(request.result); });
     const value = (result.ok ? result.value : this.memory.get(key)) as Partial<FormatPreference> | undefined;
-    if (value?.kind !== 'format' || value.origin !== this.origin || value.accountId !== accountId) return 'wav';
+    if (value?.kind !== 'format' || value.origin !== this.origin || value.accountId !== accountId) return 'ogg';
     const format = savedAudioFormat(value.format);
     this.memory.set(key, { kind: 'format', origin: this.origin, accountId, format });
     return format;

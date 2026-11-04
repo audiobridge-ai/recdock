@@ -1,0 +1,129 @@
+{
+  "schemaVersion": 1,
+  "recordingId": "rec_synthetic",
+  "sourceSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "durationMs": 6000,
+  "revisionId": "rev_machine",
+  "language": "zh",
+  "provenance": {
+    "pipelineVersion": "spike-v1",
+    "asr": {
+      "engine": "synthetic",
+      "model": "test",
+      "revision": "fixture-v1",
+      "quantization": null
+    },
+    "aligner": null,
+    "diarizer": null
+  },
+  "speakers": [
+    {
+      "id": "SPEAKER_00",
+      "displayName": "说话人 1",
+      "nameSource": "default"
+    },
+    {
+      "id": "SPEAKER_01",
+      "displayName": "说话人 2",
+      "nameSource": "user"
+    }
+  ],
+  "chunks": [
+    {
+      "id": "chunk_a",
+      "startMs": 0,
+      "endMs": 3000,
+      "paddingLeftMs": 0,
+      "paddingRightMs": 200,
+      "status": "ready",
+      "errorCode": null
+    },
+    {
+      "id": "chunk_b",
+      "startMs": 3000,
+      "endMs": 6000,
+      "paddingLeftMs": 200,
+      "paddingRightMs": 0,
+      "status": "ready",
+      "errorCode": null
+    }
+  ],
+  "segments": [
+    {
+      "id": "seg_a",
+      "startMs": 1200,
+      "endMs": 2600,
+      "speakerId": "SPEAKER_00",
+      "text": "合成示例。",
+      "timingSource": "asr_segment",
+      "overlap": false,
+      "flags": [
+        "unaligned"
+      ],
+      "sourceChunkIds": [
+        "chunk_a"
+      ],
+      "words": [
+        {
+          "text": "合成示例",
+          "startMs": null,
+          "endMs": null,
+          "timingSource": "unavailable",
+          "scores": null
+        }
+      ],
+      "scores": null
+    },
+    {
+      "id": "seg_b",
+      "startMs": 3100,
+      "endMs": 4200,
+      "speakerId": "SPEAKER_01",
+      "text": "第二位说话人。",
+      "timingSource": "asr_segment",
+      "overlap": true,
+      "flags": [
+        "overlap"
+      ],
+      "sourceChunkIds": [
+        "chunk_b"
+      ],
+      "words": [],
+      "scores": null
+    },
+    {
+      "id": "seg_c",
+      "startMs": 3500,
+      "endMs": 4500,
+      "speakerId": null,
+      "text": "归属待确认。",
+      "timingSource": "asr_segment",
+      "overlap": true,
+      "flags": [
+        "overlap",
+        "speaker_uncertain"
+      ],
+      "sourceChunkIds": [
+        "chunk_b"
+      ],
+      "words": [],
+      "scores": null
+    }
+  ],
+  "speakerTurns": [
+    {
+      "id": "turn_a",
+      "startMs": 1100,
+      "endMs": 2700,
+      "speakerId": "SPEAKER_00",
+      "overlap": false
+    },
+    {
+      "id": "turn_b",
+      "startMs": 3000,
+      "endMs": 4300,
+      "speakerId": "SPEAKER_01",
+      "overlap": true
+    }
+  ]
+}

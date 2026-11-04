@@ -340,9 +340,9 @@ export class PlaudController {
     if (!this.stoppingFile) this.fileInbox?.close(new TransferCancelled());
     this.update();
   }
-  async download(sessionId: number): Promise<PlayableRecording | undefined> {
+  async download(sessionId: number): Promise<(PlayableRecording & { originalData: Uint8Array }) | undefined> {
     if (this.activeOperation || this.snapshot.phase !== 'ready') return;
-    let output: PlayableRecording | undefined;
+    let output: (PlayableRecording & { originalData: Uint8Array }) | undefined;
     await this.operation(async () => {
       const epoch = this.epoch;
       let started = false;
@@ -369,7 +369,7 @@ export class PlaudController {
           if (candidate.data !== bytes) candidate.data.fill(0);
           throw new TransferCancelled();
         }
-        output = candidate;
+        output = { ...candidate, originalData: bytes };
         this.snapshot.transfer = { phase: 'complete', sessionId, received: file.size, total: file.size, filename: output.filename, notice: output.notice };
         this.checkpoint = undefined; this.stage('录音文件已完整接收并通过长度检查');
       } catch (e) {

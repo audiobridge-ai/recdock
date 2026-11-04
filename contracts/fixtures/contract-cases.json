@@ -1,0 +1,708 @@
+{
+  "schemaVersion": 1,
+  "bases": {
+    "transcript": {
+      "kind": "Transcript",
+      "data": {
+        "schemaVersion": 1,
+        "recordingId": "rec_synthetic",
+        "sourceSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "durationMs": 6000,
+        "revisionId": "rev_machine",
+        "language": "zh",
+        "provenance": {
+          "pipelineVersion": "spike-v1",
+          "asr": {
+            "engine": "synthetic",
+            "model": "test",
+            "revision": "fixture-v1",
+            "quantization": null
+          },
+          "aligner": null,
+          "diarizer": null
+        },
+        "speakers": [
+          {
+            "id": "SPEAKER_00",
+            "displayName": "说话人 1",
+            "nameSource": "default"
+          },
+          {
+            "id": "SPEAKER_01",
+            "displayName": "说话人 2",
+            "nameSource": "user"
+          }
+        ],
+        "chunks": [
+          {
+            "id": "chunk_a",
+            "startMs": 0,
+            "endMs": 3000,
+            "paddingLeftMs": 0,
+            "paddingRightMs": 200,
+            "status": "ready",
+            "errorCode": null
+          },
+          {
+            "id": "chunk_b",
+            "startMs": 3000,
+            "endMs": 6000,
+            "paddingLeftMs": 200,
+            "paddingRightMs": 0,
+            "status": "ready",
+            "errorCode": null
+          }
+        ],
+        "segments": [
+          {
+            "id": "seg_a",
+            "startMs": 1200,
+            "endMs": 2600,
+            "speakerId": "SPEAKER_00",
+            "text": "合成示例。",
+            "timingSource": "asr_segment",
+            "overlap": false,
+            "flags": [
+              "unaligned"
+            ],
+            "sourceChunkIds": [
+              "chunk_a"
+            ],
+            "words": [
+              {
+                "text": "合成示例",
+                "startMs": null,
+                "endMs": null,
+                "timingSource": "unavailable",
+                "scores": null
+              }
+            ],
+            "scores": null
+          },
+          {
+            "id": "seg_b",
+            "startMs": 3100,
+            "endMs": 4200,
+            "speakerId": "SPEAKER_01",
+            "text": "第二位说话人。",
+            "timingSource": "asr_segment",
+            "overlap": true,
+            "flags": [
+              "overlap"
+            ],
+            "sourceChunkIds": [
+              "chunk_b"
+            ],
+            "words": [],
+            "scores": null
+          },
+          {
+            "id": "seg_c",
+            "startMs": 3500,
+            "endMs": 4500,
+            "speakerId": null,
+            "text": "归属待确认。",
+            "timingSource": "asr_segment",
+            "overlap": true,
+            "flags": [
+              "overlap",
+              "speaker_uncertain"
+            ],
+            "sourceChunkIds": [
+              "chunk_b"
+            ],
+            "words": [],
+            "scores": null
+          }
+        ],
+        "speakerTurns": [
+          {
+            "id": "turn_a",
+            "startMs": 1100,
+            "endMs": 2700,
+            "speakerId": "SPEAKER_00",
+            "overlap": false
+          },
+          {
+            "id": "turn_b",
+            "startMs": 3000,
+            "endMs": 4300,
+            "speakerId": "SPEAKER_01",
+            "overlap": true
+          }
+        ]
+      }
+    },
+    "progress": {
+      "kind": "WorkerEvent",
+      "data": {
+        "protocolVersion": 1,
+        "jobId": "job_example",
+        "sequence": 2,
+        "event": "progress",
+        "stage": "transcribing",
+        "payload": {
+          "completedUnits": 1,
+          "totalUnits": 3,
+          "unit": "chunks"
+        }
+      }
+    },
+    "ready": {
+      "kind": "WorkerEvent",
+      "data": {
+        "protocolVersion": 1,
+        "jobId": null,
+        "sequence": 0,
+        "event": "ready",
+        "stage": null,
+        "payload": {
+          "workerVersion": "0.1.0",
+          "capabilities": [
+            "transcribing"
+          ]
+        }
+      }
+    },
+    "run": {
+      "kind": "WorkerCommand",
+      "data": {
+        "protocolVersion": 1,
+        "jobId": "job_example",
+        "command": "run",
+        "payload": {
+          "recordingId": "rec_example",
+          "sourceAssetId": "asset_original",
+          "pipelineFingerprint": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "language": null,
+          "minSpeakers": 2,
+          "maxSpeakers": 4
+        }
+      }
+    },
+    "job": {
+      "kind": "Job",
+      "data": {
+        "schemaVersion": 1,
+        "id": "job_example",
+        "recordingId": "rec_example",
+        "scopeId": "scope_personal",
+        "pipelineFingerprint": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "state": "running",
+        "stage": "transcribing",
+        "createdAtMs": 100,
+        "updatedAtMs": 101,
+        "completedStages": [
+          "preparing"
+        ],
+        "error": null
+      }
+    },
+    "recording": {
+      "kind": "Recording",
+      "data": {
+        "schemaVersion": 1,
+        "id": "rec_example",
+        "scopeId": "scope_personal",
+        "title": "合成测试",
+        "source": {
+          "kind": "import",
+          "deviceId": null,
+          "sessionId": null
+        },
+        "sourceSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "durationMs": 6000,
+        "createdAtMs": 100,
+        "state": "stored",
+        "assets": [
+          {
+            "id": "asset_original",
+            "role": "original",
+            "relativePath": "original/asset_original.wav",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 100,
+            "mimeType": "audio/wav"
+          }
+        ]
+      }
+    },
+    "revision": {
+      "kind": "Revision",
+      "data": {
+        "schemaVersion": 1,
+        "id": "rev_edit",
+        "recordingId": "rec_example",
+        "baseRevisionId": "rev_machine",
+        "createdAtMs": 100,
+        "changes": [
+          {
+            "kind": "speaker_name",
+            "speakerId": "SPEAKER_00",
+            "displayName": "用户确认的姓名"
+          }
+        ]
+      }
+    },
+    "sync": {
+      "kind": "Sync",
+      "data": {
+        "schemaVersion": 1,
+        "id": "sync_example",
+        "recordingId": "rec_example",
+        "revisionId": "rev_machine",
+        "targetId": "target_browser",
+        "contentSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "state": "prepared",
+        "remoteReference": null,
+        "updatedAtMs": 100
+      }
+    }
+  },
+  "cases": [
+    {
+      "id": "valid_transcript",
+      "base": "transcript",
+      "valid": true,
+      "patches": []
+    },
+    {
+      "id": "valid_progress",
+      "base": "progress",
+      "valid": true,
+      "patches": []
+    },
+    {
+      "id": "valid_ready",
+      "base": "ready",
+      "valid": true,
+      "patches": []
+    },
+    {
+      "id": "valid_run",
+      "base": "run",
+      "valid": true,
+      "patches": []
+    },
+    {
+      "id": "valid_job",
+      "base": "job",
+      "valid": true,
+      "patches": []
+    },
+    {
+      "id": "valid_recording",
+      "base": "recording",
+      "valid": true,
+      "patches": []
+    },
+    {
+      "id": "valid_revision",
+      "base": "revision",
+      "valid": true,
+      "patches": []
+    },
+    {
+      "id": "valid_sync",
+      "base": "sync",
+      "valid": true,
+      "patches": []
+    },
+    {
+      "id": "negative_source_time",
+      "base": "transcript",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "segments",
+            0,
+            "startMs"
+          ],
+          "value": -1
+        }
+      ]
+    },
+    {
+      "id": "beyond_source_duration",
+      "base": "transcript",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "segments",
+            2,
+            "endMs"
+          ],
+          "value": 6001
+        }
+      ]
+    },
+    {
+      "id": "zero_length_segment",
+      "base": "transcript",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "segments",
+            0,
+            "endMs"
+          ],
+          "value": 1200
+        }
+      ]
+    },
+    {
+      "id": "unknown_speaker",
+      "base": "transcript",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "segments",
+            0,
+            "speakerId"
+          ],
+          "value": "SPEAKER_99"
+        }
+      ]
+    },
+    {
+      "id": "missing_source_chunk",
+      "base": "transcript",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "segments",
+            0,
+            "sourceChunkIds"
+          ],
+          "value": [
+            "chunk_missing"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "wrong_chunk_offset",
+      "base": "transcript",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "segments",
+            1,
+            "sourceChunkIds"
+          ],
+          "value": [
+            "chunk_a"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "duplicate_segment_id",
+      "base": "transcript",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "segments",
+            1,
+            "id"
+          ],
+          "value": "seg_a"
+        }
+      ]
+    },
+    {
+      "id": "unordered_segments",
+      "base": "transcript",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "segments",
+            2,
+            "startMs"
+          ],
+          "value": 3000
+        }
+      ]
+    },
+    {
+      "id": "half_aligned_word",
+      "base": "transcript",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "segments",
+            0,
+            "words",
+            0,
+            "startMs"
+          ],
+          "value": 1300
+        }
+      ]
+    },
+    {
+      "id": "fake_unavailable_word_time",
+      "base": "transcript",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "segments",
+            0,
+            "words",
+            0
+          ],
+          "value": {
+            "text": "合成",
+            "startMs": 1300,
+            "endMs": 1500,
+            "timingSource": "unavailable",
+            "scores": null
+          }
+        }
+      ]
+    },
+    {
+      "id": "word_outside_segment",
+      "base": "transcript",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "segments",
+            0,
+            "words",
+            0
+          ],
+          "value": {
+            "text": "合成",
+            "startMs": 1100,
+            "endMs": 1500,
+            "timingSource": "forced_alignment",
+            "scores": null
+          }
+        }
+      ]
+    },
+    {
+      "id": "stale_edit_word_timing",
+      "base": "transcript",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "segments",
+            0,
+            "timingSource"
+          ],
+          "value": "user_pending"
+        },
+        {
+          "path": [
+            "segments",
+            0,
+            "words",
+            0
+          ],
+          "value": {
+            "text": "编辑",
+            "startMs": 1300,
+            "endMs": 1500,
+            "timingSource": "forced_alignment",
+            "scores": null
+          }
+        }
+      ]
+    },
+    {
+      "id": "unknown_schema_version",
+      "base": "transcript",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "schemaVersion"
+          ],
+          "value": 2
+        }
+      ]
+    },
+    {
+      "id": "private_path_rejected",
+      "base": "recording",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "assets",
+            0,
+            "relativePath"
+          ],
+          "value": "../../secret.wav"
+        }
+      ]
+    },
+    {
+      "id": "absolute_path_rejected",
+      "base": "recording",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "assets",
+            0,
+            "relativePath"
+          ],
+          "value": "/private/audio.wav"
+        }
+      ]
+    },
+    {
+      "id": "arbitrary_extra_field",
+      "base": "progress",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "payload",
+            "percent"
+          ],
+          "value": 99
+        }
+      ]
+    },
+    {
+      "id": "progress_exceeds_total",
+      "base": "progress",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "payload",
+            "completedUnits"
+          ],
+          "value": 4
+        }
+      ]
+    },
+    {
+      "id": "wrong_event_payload",
+      "base": "progress",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "event"
+          ],
+          "value": "completed"
+        }
+      ]
+    },
+    {
+      "id": "invalid_speaker_limits",
+      "base": "run",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "payload",
+            "minSpeakers"
+          ],
+          "value": 5
+        }
+      ]
+    },
+    {
+      "id": "queued_job_with_active_stage",
+      "base": "job",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "state"
+          ],
+          "value": "queued"
+        }
+      ]
+    },
+    {
+      "id": "reversed_job_time",
+      "base": "job",
+      "valid": false,
+      "patches": [
+        {
+          "path": [
+            "updatedAtMs"
+          ],
+          "value": 99
+        }
+      ]
+    },
+    {
+      "id": "valid_revision_segment_speaker",
+      "base": "revision",
+      "valid": true,
+      "patches": [
+        {
+          "path": [
+            "changes"
+          ],
+          "value": [
+            {
+              "kind": "segment_speaker",
+              "segmentId": "seg_a",
+              "speakerId": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "valid_revision_segment_time",
+      "base": "revision",
+      "valid": true,
+      "patches": [
+        {
+          "path": [
+            "changes"
+          ],
+          "value": [
+            {
+              "kind": "segment_time",
+              "segmentId": "seg_a",
+              "startMs": 100,
+              "endMs": 300
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "valid_revision_segment_reviewed",
+      "base": "revision",
+      "valid": true,
+      "patches": [
+        {
+          "path": [
+            "changes"
+          ],
+          "value": [
+            {
+              "kind": "segment_reviewed",
+              "segmentId": "seg_a",
+              "reviewed": false
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

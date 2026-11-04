@@ -33,3 +33,10 @@ decompiled/
 .rea/
 coverage/
 *.tsbuildinfo
+
+# Local audio models, Python environments, private fixtures and benchmark outputs.
+.local-audio/
+worker/.venv/
+worker/.pytest_cache/
+**/__pycache__/
+*.pyc

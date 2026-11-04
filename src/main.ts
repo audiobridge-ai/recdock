@@ -138,7 +138,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
         </section>
         <section class="panel recordings-panel" aria-labelledby="recordings-title">
           <div class="section-heading"><div><p class="eyebrow">05 / RECORDINGS</p><h2 id="recordings-title">设备录音文件</h2></div><button id="refresh-files" class="text-button" type="button">↻ 刷新列表</button></div>
-          <div class="audio-export-controls"><label>转写语言<select id="device-transcription-language"><option value="zh">中文 / 中英混说</option><option value="en">English</option></select></label><label for="save-format">恢复文件导出格式<select id="save-format"><option value="ogg" selected>Ogg（默认，保留压缩音频）</option><option value="wav">WAV（仅本机恢复导出）</option></select></label><button id="recover-file" class="quiet" type="button">恢复已下载文件</button><input id="recording-file" type="file" accept=".bin,.ogg,.opus" hidden></div>
+          <div class="audio-export-controls"><label for="save-format">恢复文件导出格式<select id="save-format"><option value="ogg" selected>Ogg（默认，保留压缩音频）</option><option value="wav">WAV（仅本机恢复导出）</option></select></label><button id="recover-file" class="quiet" type="button">恢复已下载文件</button><input id="recording-file" type="file" accept=".bin,.ogg,.opus" hidden></div>
           <p class="hint">WAV 在本机解码，体积较大；Ogg 保留压缩音频。恢复加密 .bin 需先准备同一账号的 RSA 认证材料，无需连接设备。文件与私钥不会上传。</p>
           <p id="files-caption" class="panel-description">设备认证完成后可读取录音目录。</p>
           <p id="files-error" class="recording-error" role="alert" hidden></p>
@@ -183,7 +183,7 @@ function installFlowLayout() {
     <section id="flow-devices" class="panel flow-devices" hidden><div class="section-heading"><div><h3>选择 PLAUD 设备</h3><p id="flow-account-label" class="hint"></p></div><button id="devices-logout" class="text-button" type="button">退出登录</button></div><p class="panel-description">先断开手机 App 与设备的蓝牙连接，再点击连接并在浏览器中授权。</p><div id="device-cards" class="device-cards"></div><p id="device-cards-empty" class="files-empty" hidden>此账号暂无绑定设备。请确认与手机 App 使用同一账号及登录方式。</p><div id="device-connect-slot" class="flow-connect-slot"><button id="flow-connect" class="primary" type="button">连接设备</button></div></section>
     <section id="flow-connecting" class="panel flow-centered" hidden><span class="flow-spinner" aria-hidden="true"></span><h3 id="flow-connecting-name">正在连接设备</h3><p id="flow-connecting-stage" class="panel-description"></p><ol id="flow-progress" class="flow-progress"></ol><p class="hint">可关闭弹窗，连接进度会显示在工作台顶部。</p><button id="flow-cancel" class="quiet" type="button">取消连接</button></section>
     <section id="flow-device-summary" hidden><div class="overlay-device-actions"><button id="flow-switch-device" class="quiet" type="button">切换设备</button><span id="workspace-disconnect-slot"></span></div><div id="workspace-overview"></div></section>
-    <section id="flow-workspace" class="settings-stack" hidden><section class="panel"><div class="section-heading"><h3>账号与本机数据</h3></div><p id="settings-account" class="panel-description"></p><p id="settings-persistence" class="hint"></p><div id="settings-account-actions" class="actions"><button id="settings-login" class="quiet" type="button">登录 PLAUD</button><button id="forget-local-data" class="quiet" type="button">移除账号授权与解密材料</button></div><p class="hint">普通退出保留加密的历史录音密钥。移除解密材料后，旧设备文件可能无法解密。音频与转写文件请在录音列表中管理。</p></section><details id="settings-diagnostics" class="settings-diagnostics"><summary>高级设置与连接诊断</summary><p class="hint">协议、认证材料与日志用于排查连接问题。</p><div id="diagnostic-panels" class="settings-stack"></div></details><details class="settings-diagnostics"><summary>设备原始文件恢复</summary><div id="workspace-recordings"></div></details></section>
+    <section id="flow-workspace" class="settings-stack" hidden><section class="panel settings-transcription"><div class="section-heading"><h3>转写设置</h3></div><label class="field">转写语言<select id="transcription-language"><option value="zh">中文 / 中英混说</option><option value="en">English</option></select></label><p class="hint">用于新的导入、设备下载和手动转写，不改变已有稿件。</p></section><section class="panel"><div class="section-heading"><h3>账号与本机数据</h3></div><p id="settings-account" class="panel-description"></p><p id="settings-persistence" class="hint"></p><div id="settings-account-actions" class="actions"><button id="settings-login" class="quiet" type="button">登录 PLAUD</button><button id="forget-local-data" class="quiet" type="button">移除账号授权与解密材料</button></div><p class="hint">普通退出保留加密的历史录音密钥。移除解密材料后，旧设备文件可能无法解密。音频与转写文件请在录音列表中管理。</p></section><details id="settings-diagnostics" class="settings-diagnostics"><summary>高级设置与连接诊断</summary><p class="hint">协议、认证材料与日志用于排查连接问题。</p><div id="diagnostic-panels" class="settings-stack"></div></details><details class="settings-diagnostics"><summary>设备原始文件恢复</summary><div id="workspace-recordings"></div></details><details class="settings-diagnostics settings-local-files"><summary>本地文件与处理环境</summary><div><p id="settings-audio-environment" class="hint">正在读取本机环境…</p><code id="settings-audio-storage"></code><p class="hint">每条录音单独保存音频和转写文件。本机导入最大 1 GiB / 6 小时；设备源文件最大 256 MiB，默认保留 Ogg。</p></div></details></section>
     <div id="flow-internal" hidden></div>`;
   old.replaceWith(dialog);
   $('flow-login').append(login); $('workspace-overview').append(status); $('workspace-recordings').append(recordings);
@@ -263,7 +263,13 @@ const libraryWorkspace = new LibraryWorkspace({
   onDisconnectDevice: () => { invalidateAudioExport(); controller.disconnect(); },
   onSwitchDevice: () => switchDevice(),
   onLogout: () => { void logoutAccount(); },
+  onEnvironment: environment => {
+    put('settings-audio-environment', environment.available ? '本机转写环境已准备。自动稿仍需回听核对。' : `录音可先保存。转写环境待准备：${environment.missing.join('、')}`);
+    put('settings-audio-storage', environment.storageRoot || '项目录音目录');
+  },
 });
+$<HTMLSelectElement>('transcription-language').value = libraryWorkspace.transcriptionLanguage;
+$('transcription-language').addEventListener('change', () => libraryWorkspace.setTranscriptionLanguage($<HTMLSelectElement>('transcription-language').value as 'zh' | 'en'));
 const deviceEntry = document.createElement('button'); deviceEntry.className = 'text-button'; deviceEntry.textContent = '设备'; deviceEntry.type = 'button'; deviceEntry.id = 'open-device'; deviceEntry.onclick = () => overlay.open('device'); document.querySelector('.topbar')!.insertBefore(deviceEntry, $('flow-open-settings')); document.querySelector('.topbar')!.insertBefore($('open-library'), deviceEntry);
 function transition(event: FlowEvent) { flow = reduceFlow(flow, event); return flow; }
 function currentFlow() { return flow; }
@@ -581,8 +587,8 @@ function renderRecordings(blocked: boolean) {
       size.className = 'recording-file-size'; size.textContent = formatBytes(BigInt(file.size)); size.title = `${file.size.toLocaleString('zh-CN')} B`;
       const button = document.createElement('button'); button.type = 'button'; button.className = 'recording-download';
       button.setAttribute('aria-label', `下载会话 ${view.id} 的录音文件`);
-      button.addEventListener('click', () => { void downloadRecording(file.sessionId, { transcribe: true, language: $<HTMLSelectElement>('device-transcription-language').value as 'zh' | 'en' }); });
-      const only = document.createElement('button'); only.type = 'button'; only.className = 'recording-download quiet'; only.textContent = '仅下载 Ogg'; only.dataset.downloadOnly = String(file.sessionId); only.onclick = () => { void downloadRecording(file.sessionId, { transcribe: false, language: $<HTMLSelectElement>('device-transcription-language').value as 'zh' | 'en' }); }; action.append(only);
+      button.addEventListener('click', () => { void downloadRecording(file.sessionId, { transcribe: true, language: libraryWorkspace.transcriptionLanguage }); });
+      const only = document.createElement('button'); only.type = 'button'; only.className = 'recording-download quiet'; only.textContent = '仅下载 Ogg'; only.dataset.downloadOnly = String(file.sessionId); only.onclick = () => { void downloadRecording(file.sessionId, { transcribe: false, language: libraryWorkspace.transcriptionLanguage }); }; action.append(only);
       recordingFileButtons.set(file.sessionId, button); action.append(button); row.append(id, size, action); return row;
     });
     $('recording-files').replaceChildren(...rows);

@@ -37,7 +37,7 @@ npm run dev
 
 Open **http://localhost:5173/** and keep the local server running.
 
-For local audio, choose **Import and transcribe** or **Import audio only** directly in the workspace. A PLAUD login and Bluetooth are not required. Model preparation and FFmpeg are required for processing; see the [development notes](docs/development.md).
+For local audio, open **Import** and choose **Import and transcribe** or **Import audio only** directly in the workspace. A PLAUD login and Bluetooth are not required. Model preparation and FFmpeg are required for processing; see the [development notes](docs/development.md).
 
 For PLAUD recordings:
 
@@ -45,9 +45,9 @@ For PLAUD recordings:
 2. Click **Connect PLAUD** in the workspace header. Sign in or import an official Web session in the dialog.
 3. Select your device and click **Connect**. Confirm the browser device selection and any system Bluetooth permission request.
 4. RecDock identifies the protocol and prepares authentication automatically. Closing the dialog leaves the connection running; **Cancel connection** is a separate action.
-5. Select a device recording in the left list and choose **Download and transcribe** or **Download Ogg only**. Choose the transcription language before starting.
+5. Select a device recording in the left list and choose **Download and transcribe** or **Download Ogg only**. Set the shared transcription language under **Settings** before starting.
 
-The workspace retains its selected recording, playback and unsaved transcript edits while dialogs open. Filter by **All sources**, **Local imports** or **PLAUD recordings**. Local imports always go into the personal library. The list also includes the signed-in account's library; logging out hides that account's private recordings while keeping personal recordings available. Connected-device actions and account actions are in the header menus; settings and diagnostics open in a drawer.
+The workspace retains its selected recording, playback and unsaved transcript edits while dialogs open. Open **Filter** for source and processing-state filters, reset, or the recycle bin. Local imports always go into the personal library. The list also includes the signed-in account's library; logging out hides that account's private recordings while keeping personal recordings available. Connected-device actions and account actions are in the header menus; settings and diagnostics open in a drawer.
 
 The device cards show account-bound devices, not a live list of nearby Bluetooth devices. The browser's initial device-selection permission is still required. Previously authorized devices can be reused when the browser supports it.
 
@@ -87,7 +87,7 @@ npm run build
 npm run preview
 ```
 
-The current workflow passes **300 JavaScript tests**, **39 Python tests**, TypeScript checks and a production build on this Mac. FFmpeg is required for the recording library and local processing, and also enables independent audio interoperability tests. See [development notes](docs/development.md) and [protocol notes](docs/protocol.md).
+The current workflow passes **308 JavaScript tests**, **39 Python tests**, TypeScript checks and a production build on this Mac. FFmpeg is required for the recording library and local processing, and also enables independent audio interoperability tests. See [development notes](docs/development.md) and [protocol notes](docs/protocol.md).
 
 Both development and preview commands provide the loopback-only local API. The `dist/` directory contains only the frontend; hosting it alone does not provide login, native detection or the local-cache API. Keep the same `localhost` origin to preserve browser device permissions and mappings.
 

@@ -1,19 +1,21 @@
 import { workspaceMarkup, recordingIcon } from './view.ts';
 import { LibraryClient } from './client.ts';
-import type { LibraryContext, RecordingRow, TranscriptPage } from './client.ts';
+import type { LibraryContext, LibraryEnvironment, RecordingRow, TranscriptPage } from './client.ts';
 import type { TranscriptRevision, TranscriptSegment } from './types.ts';
 import type { PlayableRecording } from '../audio/ogg.ts';
 import type { RecordingFile } from '../protocol/files.ts';
 import type { TransferStatus } from '../ui/recordings.ts';
 import { transferView } from '../ui/recordings.ts';
 import { formatBytes } from '../protocol/status.ts';
+import { deviceRecordingTitle, recordingTitle } from './recording-title.ts';
 
 export interface DeviceWorkspaceState { deviceId?: string; name: string; connected: boolean; canDownload: boolean; busy: boolean; status: string; duration: string; battery?: number; files: RecordingFile[]; transfer: TransferStatus; hint: string }
 export interface DownloadOptions { transcribe: boolean; language: 'zh' | 'en' }
 export interface AccountWorkspaceState { authenticated: boolean; restoring: boolean; accountId?: string; email?: string; busy: boolean; connecting: boolean; error?: string }
 type Scope = 'personal' | 'account';
 type ScopedRecordingRow = RecordingRow & { scope: Scope };
-interface WorkspaceOptions { parent: HTMLElement; onVisibility: (visible: boolean) => void; onDownload?: (sessionId: number, options: DownloadOptions) => Promise<void>; onCancelDownload?: () => void; onRefreshDevice?: () => void; onOpenSettings?: () => void; onOpenDevice?: () => void; onDisconnectDevice?: () => void; onSwitchDevice?: () => void; onLogout?: () => void };
+interface WorkspaceOptions { parent: HTMLElement; onVisibility: (visible: boolean) => void; onDownload?: (sessionId: number, options: DownloadOptions) => Promise<void>; onCancelDownload?: () => void; onRefreshDevice?: () => void; onOpenSettings?: () => void; onOpenDevice?: () => void; onDisconnectDevice?: () => void; onSwitchDevice?: () => void; onLogout?: () => void; onEnvironment?: (environment: LibraryEnvironment) => void };
+const menus = [['device-menu', 'device-settings'], ['account-menu', 'account-menu'], ['import-menu', 'import-menu'], ['filter-menu', 'filter-menu']] as const;
 
 const stageNames: Record<string, string> = { preparing: '检查与解码', transcribing: '转写文字', aligning: '对齐时间', diarizing: '区分讲话人', merging: '合并全文', exporting: '生成导出' };
 const stateNames: Record<string, string> = { queued: '等待处理', running: '正在处理', succeeded: '转写完成', failed: '处理失败', cancelled: '已取消', interrupted: '处理中断', paused: '等待账号恢复' };
@@ -56,11 +58,13 @@ export class LibraryWorkspace {
   private sourceFilter = 'all';
   private accountState?: AccountWorkspaceState;
   private importingWithTranscription = true;
+  private language: 'zh' | 'en' = 'zh';
   private options: WorkspaceOptions;
   constructor(options: WorkspaceOptions) {
     this.options = options;
     this.client = new LibraryClient();
     try { const source = window.localStorage.getItem('recdock.librarySource'); if (source === 'import' || source === 'ble') this.sourceFilter = source; } catch { /* In-page preferences remain available. */ }
+    try { if (window.localStorage.getItem('recdock.transcriptionLanguage') === 'en') this.language = 'en'; } catch { /* Defaults also work without browser storage. */ }
     this.onVisibility = options.onVisibility;
     this.root = el('section', 'audio-library'); this.root.id = 'audio-library'; this.root.hidden = true;
     this.root.innerHTML = workspaceMarkup;
@@ -86,6 +90,8 @@ export class LibraryWorkspace {
   private failure(error: unknown) { this.notice(error instanceof Error ? error.message : '操作未完成，请重试。', true); }
   private discard() { if (!this.editing) return true; if (!confirm('本段有尚未保存的修改。离开将放弃这些修改，继续吗？')) return false; this.editing = false; return true; }
   initialize() { return this.refreshContext(); }
+  get transcriptionLanguage() { return this.language; }
+  setTranscriptionLanguage(language: 'zh' | 'en') { this.language = language === 'en' ? 'en' : 'zh'; try { window.localStorage.setItem('recdock.transcriptionLanguage', this.language); } catch { /* The setting remains usable in this page. */ } }
   async refreshIdentity() { if (this.visible) { try { await this.refreshContext(); await this.refresh(); } catch (e) { this.failure(e); } } }
   async open() {
     if (this.visible) return;
@@ -101,7 +107,7 @@ export class LibraryWorkspace {
     this.context = await this.client.context();
     if ((previousIdentity && previousIdentity !== this.context.identity) || !this.accountAvailable) this.dropAccountView();
     this.renderList();
-    this.view('environment').textContent = this.context.environment.available ? '本机处理环境已准备 · 候选结果需核对' : `录音可以先入库。待准备：${this.context.environment.missing.join('、')}`;
+    this.options.onEnvironment?.(this.context.environment);
   }
   private schedule() { clearTimeout(this.timer); if (this.visible) this.timer = setTimeout(() => { void this.refresh().catch(async e => { try { await this.refreshContext(); await this.refresh(); } catch { this.failure(e); } }).finally(() => this.schedule()); }, 2500); }
   private clearSelected(clearList = true) { this.generation++; this.selected = undefined; this.selectedDevice = undefined; this.page = undefined; this.listSignature = ''; this.audio().pause(); this.audio().removeAttribute('src'); this.view('detail').hidden = true; this.view('device-detail').hidden = true; this.view('rename-form').hidden = true; this.view('empty').hidden = false; this.view('paragraphs').replaceChildren(); if (clearList) { this.rows = []; this.view('list').replaceChildren(); } }
@@ -131,24 +137,33 @@ export class LibraryWorkspace {
   }
   private renderList(total = this.rows.length) {
     const query = this.field('list-search').value.trim().toLocaleLowerCase();
+    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     const device = this.deviceState;
     const pending = !this.trash && this.accountAvailable ? (device?.files || []).filter(file => !this.rows.some(row => row.recording.source.kind === 'ble' && row.recording.source.deviceId === device?.deviceId && row.recording.source.sessionId === file.sessionId)) : [];
-    const rows = this.rows.filter(row => (this.sourceFilter === 'all' || row.recording.source.kind === this.sourceFilter) && (!query || row.recording.title.toLocaleLowerCase().includes(query)) && (this.trash || this.listFilter === 'all' || this.listFilter === 'local' || this.listFilter === 'processing' && ['queued', 'running', 'paused', 'interrupted'].includes(row.job?.state || '') || this.listFilter === 'ready' && !!row.revision));
-    const deviceFiles = this.sourceFilter !== 'import' && ['all', 'device'].includes(this.listFilter) ? pending.filter(file => !query || String(file.sessionId).includes(query)) : [];
-    this.view('list-total').textContent = String(total + pending.length);
-    const signature = JSON.stringify([this.sourceFilter, this.trash, this.listFilter, query, this.selected?.scope, this.selected?.recording.id, this.selectedDevice, device?.deviceId, deviceFiles, rows.map(row => [row.scope, row.recording.id, row.recording.title, row.recording.state, row.job?.state, row.job?.stage, row.revision?.revisionId])]);
+    const rows = this.rows.filter(row => (this.sourceFilter === 'all' || row.recording.source.kind === this.sourceFilter) && (!query || row.recording.title.toLocaleLowerCase().includes(query) || recordingTitle(row.recording, timeZone).toLocaleLowerCase().includes(query) || row.recording.source.kind === 'ble' && String(row.recording.source.sessionId).includes(query)) && (this.trash || this.listFilter === 'all' || this.listFilter === 'local' || this.listFilter === 'processing' && ['queued', 'running', 'paused', 'interrupted'].includes(row.job?.state || '') || this.listFilter === 'ready' && !!row.revision));
+    const deviceFiles = this.sourceFilter !== 'import' && ['all', 'device'].includes(this.listFilter) ? pending.filter(file => !query || String(file.sessionId).includes(query) || deviceRecordingTitle(file.sessionId, timeZone).includes(query)) : [];
+    const activeFilters = Number(this.sourceFilter !== 'all') + Number(this.listFilter !== 'all');
+    this.view('list-total').textContent = String(activeFilters ? rows.length + deviceFiles.length : total + pending.length);
+    this.view('list-title').textContent = this.trash ? '回收站' : '录音';
+    this.view('filter-count').textContent = String(activeFilters); this.view('filter-count').hidden = !activeFilters;
+    this.button('filter-menu').classList.toggle('active', !!activeFilters);
+    this.button('filter-menu').setAttribute('aria-label', activeFilters ? `筛选录音，已启用 ${activeFilters} 项条件` : '筛选录音');
+    this.button('reset-filters').disabled = !activeFilters;
+    const signature = JSON.stringify([timeZone, this.sourceFilter, this.trash, this.listFilter, query, this.selected?.scope, this.selected?.recording.id, this.selectedDevice, device?.deviceId, deviceFiles, rows.map(row => [row.scope, row.recording.id, row.recording.title, row.recording.state, row.job?.state, row.job?.stage, row.revision?.revisionId])]);
     if (signature === this.listSignature) return;
     this.listSignature = signature; this.view('list').replaceChildren();
     for (const file of deviceFiles) {
       const button = el('button', 'library-record library-device-record' + (this.selectedDevice === file.sessionId ? ' selected' : ''));
-      this.decorateFile(button, `设备录音 ${file.sessionId}`, `${formatBytes(BigInt(file.size))} · 设备待下载`);
+      this.decorateFile(button, deviceRecordingTitle(file.sessionId, timeZone), `${formatBytes(BigInt(file.size))} · 设备待下载`);
+      button.title = `设备文件编号：${file.sessionId} · 当前时区：${timeZone}`;
       button.onclick = () => { if (!this.discard()) return; this.clearSelected(false); this.selectedDevice = file.sessionId; this.renderDeviceDetail(); this.renderList(); };
       this.view('list').append(button);
     }
     for (const row of rows) {
       const button = el('button', 'library-record' + (this.selected?.scope === row.scope && this.selected?.recording.id === row.recording.id ? ' selected' : '')); button.dataset.scope = row.scope;
       const onDevice = row.recording.source.kind === 'ble' && row.recording.source.deviceId === device?.deviceId && device?.files.some(file => file.sessionId === row.recording.source.sessionId);
-      this.decorateFile(button, row.recording.title, `${row.recording.durationMs ? clock(row.recording.durationMs) : '待检查音频'} · ${this.status(row)} · ${row.recording.source.kind === 'ble' ? (onDevice ? 'PLAUD · 本机与设备' : 'PLAUD') : '本机导入'}`);
+      this.decorateFile(button, recordingTitle(row.recording, timeZone), `${row.recording.durationMs ? clock(row.recording.durationMs) : '待检查音频'} · ${this.status(row)} · ${row.recording.source.kind === 'ble' ? (onDevice ? 'PLAUD · 本机与设备' : 'PLAUD') : '本机导入'}`);
+      if (row.recording.source.kind === 'ble') button.title = `设备文件编号：${row.recording.source.sessionId} · 当前时区：${timeZone}`;
       button.onclick = () => { if (this.discard()) void this.select(row).catch(e => this.failure(e)); }; this.view('list').append(button);
     }
     if (!rows.length && !deviceFiles.length) this.view('list').append(el('p', 'library-list-empty', this.trash ? '回收站为空' : this.sourceFilter === 'ble' || this.listFilter === 'device' ? '暂无符合条件的 PLAUD 录音。可从顶部连接设备。' : '暂无符合条件的录音。可连接设备或导入音频。'));
@@ -172,26 +187,28 @@ export class LibraryWorkspace {
     this.button('account-login').disabled = state.restoring || state.busy;
     this.button('account-logout').hidden = !state.authenticated;
     this.button('account-logout').disabled = state.busy;
-    this.button('account-menu').textContent = state.authenticated ? '账号 · 已登录' : '账号';
+    this.view('account-status').textContent = state.authenticated ? '已登录' : '未登录';
+    this.button('account-menu').setAttribute('aria-label', `PLAUD 账号：${state.authenticated ? '已登录' : '未登录'}`);
     this.renderDeviceBar();
   }
   private renderDeviceBar() {
     const state = this.deviceState, account = this.accountState;
-    this.view('device-name').textContent = state?.connected || account?.authenticated ? state?.name || 'PLAUD 设备' : 'PLAUD 未连接';
-    this.view('device-status').textContent = state?.connected ? state.status : account?.connecting ? '正在连接设备…' : account?.restoring ? '正在恢复 PLAUD 账号…' : account?.error || '未连接 · 本机录音可用';
+    this.view('device-name').textContent = state?.connected || account?.connecting ? state?.name || 'PLAUD 设备' : '连接 PLAUD';
+    this.view('device-status').textContent = state?.connected ? state.status : account?.connecting ? '连接中…' : account?.restoring ? '恢复账号…' : account?.error ? '连接异常' : '';
+    this.button('device-settings').title = account?.error || (state?.connected ? '查看设备状态与操作' : '连接 PLAUD 设备');
     this.view('device-duration').textContent = state?.connected && state.duration !== '—' ? state.duration : '';
-    this.view('device-battery').textContent = state?.connected && state.battery !== undefined ? `电量 ${state.battery}%` : '';
+    this.view('device-battery').textContent = state?.connected && state.battery !== undefined ? `${state.battery}%` : '';
+    this.view('device-battery').setAttribute('aria-label', state?.battery === undefined ? '' : `电量 ${state.battery}%`);
+    this.view('battery-fill').setAttribute('width', String(11 * Math.max(0, Math.min(100, state?.battery ?? 0)) / 100));
     this.root.querySelector('.library-device-bar')!.classList.toggle('connected', !!state?.connected);
     this.root.querySelector('.library-device-bar')!.classList.toggle('connecting', !!account?.connecting);
     this.view('device-menu-status').textContent = `${state?.name || 'PLAUD'} · ${this.view('device-status').textContent}${state?.connected && state.battery !== undefined ? ` · 电量 ${state.battery}%` : ''}`;
-    this.button('connect-device').hidden = !!state?.connected;
-    this.button('connect-device').textContent = account?.connecting ? '查看连接进度' : account?.authenticated ? '连接设备' : '连接 PLAUD';
     this.button('menu-refresh').disabled = !state?.canDownload || state.busy;
     this.button('disconnect-device').disabled = !state?.connected || !!account?.busy;
     this.button('switch-device').disabled = !!account?.busy;
   }
   private closeMenus() {
-    for (const [view, action] of [['device-menu', 'device-settings'], ['account-menu', 'account-menu']]) { this.view(view).hidden = true; this.button(action).setAttribute('aria-expanded', 'false'); }
+    for (const [view, action] of menus) { this.view(view).hidden = true; this.button(action).setAttribute('aria-expanded', 'false'); }
   }
   private openDevice() { this.closeMenus(); this.button('device-settings').focus(); this.options.onOpenDevice?.(); }
   private toggleMenu(view: string, action: string) { const opening = this.view(view).hidden; this.closeMenus(); this.view(view).hidden = !opening; this.button(action).setAttribute('aria-expanded', String(opening)); }
@@ -209,8 +226,8 @@ export class LibraryWorkspace {
     if (this.selectedDevice === undefined || !this.deviceState) return;
     const state = this.deviceState, file = state.files.find(file => file.sessionId === this.selectedDevice);
     this.view('empty').hidden = true; this.view('detail').hidden = true; this.view('device-detail').hidden = false;
-    this.view('device-file-title').textContent = `设备录音 ${this.selectedDevice}`;
-    this.view('device-file-meta').textContent = `${state.name}${file ? ' · ' + formatBytes(BigInt(file.size)) : ''} · 默认保存 Ogg`;
+    this.view('device-file-title').textContent = deviceRecordingTitle(this.selectedDevice);
+    this.view('device-file-meta').textContent = `${state.name} · 文件编号 ${this.selectedDevice}${file ? ' · ' + formatBytes(BigInt(file.size)) : ''} · 默认保存 Ogg`;
     this.view('device-hint').textContent = state.hint;
     for (const action of ['download-transcribe', 'download-only']) this.button(action).disabled = !file || !state.canDownload || state.busy || file.size > 256 * 1024 * 1024;
     const transfer = transferView(state.transfer), active = state.transfer.sessionId === this.selectedDevice;
@@ -242,13 +259,14 @@ export class LibraryWorkspace {
   private status(row: RecordingRow) { return row.recording.state === 'deleted' ? '回收站' : row.recording.state === 'needs_recovery' ? '需要恢复音频' : row.recording.state === 'unsupported' ? '音频暂不支持' : row.job ? (row.job.state === 'running' ? stageNames[row.job.stage!] : stateNames[row.job.state]) : '已保存 · 尚未转写'; }
   private async select(row: ScopedRecordingRow) {
     const changed = row.scope !== this.selected?.scope || row.recording.id !== this.selected?.recording.id; this.client.scope = row.scope; this.selectedDevice = undefined; this.view('device-detail').hidden = true; this.view('rename-form').hidden = true; this.selected = row;
-    if (changed) { this.generation++; this.page = undefined; this.version = ''; this.view('paragraphs').replaceChildren(); this.cursor = 0; this.query = ''; this.speaker = ''; this.mode = 'all'; this.field('search').value = ''; this.field('mode').value = 'all'; this.playEnd = null; this.audio().pause(); this.audio().src = this.client.url(`recordings/${row.recording.id}/audio`); this.field('language').value = row.language || 'zh'; }
+    if (changed) { this.generation++; this.page = undefined; this.version = ''; this.view('paragraphs').replaceChildren(); this.cursor = 0; this.query = ''; this.speaker = ''; this.mode = 'all'; this.field('search').value = ''; this.field('mode').value = 'all'; this.playEnd = null; this.audio().pause(); this.audio().src = this.client.url(`recordings/${row.recording.id}/audio`); }
     this.view('empty').hidden = true; this.view('detail').hidden = false; this.renderHeader();
     if (row.revision && row.recording.state !== 'deleted') await this.loadTranscript(); else this.view('reader').hidden = true;
     await this.refresh();
   }
   private renderHeader() {
-    const row = this.selected!; this.view('title').textContent = row.recording.title;
+    const row = this.selected!; this.view('title').textContent = recordingTitle(row.recording);
+    this.view('title').title = row.recording.title;
     this.view('meta').textContent = `${row.recording.durationMs ? clock(row.recording.durationMs) + ' · ' : ''}${row.recording.source.kind === 'ble' ? '设备下载' : '本机导入'} · ${new Date(row.recording.createdAtMs).toLocaleString('zh-CN')}`;
     this.view('storage').textContent = row.storagePath || this.context?.environment.storageRoot || '本机录音目录'; this.view('storage').title = this.view('storage').textContent || '';
     this.view('status').textContent = this.status(row); this.view('status').dataset.state = row.job?.state || row.recording.state;
@@ -343,32 +361,34 @@ export class LibraryWorkspace {
   private bind() {
     this.button('workspace-settings').onclick = () => { this.closeMenus(); this.options.onOpenSettings?.(); };
     this.button('device-settings').onclick = () => { if (this.deviceState?.connected) this.toggleMenu('device-menu', 'device-settings'); else this.openDevice(); };
-    for (const action of ['connect-device', 'empty-device', 'device-details', 'account-login']) this.button(action).onclick = () => this.openDevice();
+    for (const action of ['empty-device', 'device-details', 'account-login']) this.button(action).onclick = () => this.openDevice();
     this.button('account-menu').onclick = () => this.toggleMenu('account-menu', 'account-menu');
     this.button('account-logout').onclick = () => { this.closeMenus(); this.options.onLogout?.(); };
     this.button('menu-refresh').onclick = () => { this.closeMenus(); this.options.onRefreshDevice?.(); };
     this.button('switch-device').onclick = () => { this.closeMenus(); this.options.onSwitchDevice?.(); };
     this.button('disconnect-device').onclick = () => { this.closeMenus(); this.options.onDisconnectDevice?.(); };
-    document.addEventListener('click', event => { if (!(event.target instanceof window.Element) || !event.target.closest('.library-device-anchor, .library-account-anchor')) this.closeMenus(); });
-    this.root.addEventListener('keydown', event => { if (event.key === 'Escape' && (!this.view('device-menu').hidden || !this.view('account-menu').hidden)) { this.closeMenus(); this.button('device-settings').focus(); } });
-    for (const action of ['import', 'import-only']) this.button(action).onclick = () => { if (!this.importing) { this.importingWithTranscription = action === 'import'; this.field('files').click(); } };
+    document.addEventListener('click', event => { if (!(event.target instanceof window.Element) || !event.target.closest('[data-menu-anchor]')) this.closeMenus(); });
+    document.addEventListener('keydown', event => { if (this.visible && event.key === 'Escape') { const active = menus.find(([view]) => !this.view(view).hidden); if (active) { event.preventDefault(); this.closeMenus(); this.button(active[1]).focus(); } } });
+    for (const action of ['import-menu', 'filter-menu']) this.button(action).onclick = () => this.toggleMenu(action, action);
+    for (const action of ['import', 'import-only']) this.button(action).onclick = () => { if (!this.importing) { this.closeMenus(); this.importingWithTranscription = action === 'import'; this.field('files').click(); } };
+    this.button('reset-filters').onclick = () => { this.sourceFilter = this.listFilter = 'all'; this.field('source').value = this.field('list-filter').value = 'all'; try { window.localStorage.setItem('recdock.librarySource', 'all'); } catch { /* Preference is optional. */ } this.listSignature = ''; this.renderList(); };
     this.field('list-filter').onchange = () => { this.listFilter = this.field('list-filter').value; this.listSignature = ''; this.renderList(); };
     this.field('list-search').oninput = () => { this.listSignature = ''; this.renderList(); };
     for (const action of ['download-transcribe', 'download-only']) this.button(action).onclick = () => {
-      if (this.selectedDevice !== undefined && this.deviceState?.canDownload && !this.deviceState.busy) void this.options.onDownload?.(this.selectedDevice, { transcribe: action === 'download-transcribe', language: this.field('language').value as 'zh' | 'en' }).catch(e => this.failure(e));
+      if (this.selectedDevice !== undefined && this.deviceState?.canDownload && !this.deviceState.busy) void this.options.onDownload?.(this.selectedDevice, { transcribe: action === 'download-transcribe', language: this.language }).catch(e => this.failure(e));
     };
     this.button('cancel-transfer').onclick = () => this.options.onCancelDownload?.();
     this.button('refresh-device').onclick = () => this.options.onRefreshDevice?.();
     this.button('export-current').onclick = () => this.button('export').click();
     this.button('audio').onclick = () => { if (this.selected) this.download(this.client.url(`recordings/${this.selected.recording.id}/audio?download=1`)); };
     this.button('copy-path').onclick = () => { const path = this.selected?.storagePath; if (path) void navigator.clipboard.writeText(path).then(() => this.notice('目录路径已复制。')).catch(() => this.notice('请选中保存位置并复制目录路径。')); };
-    this.button('rename').onclick = () => { if (this.selected) { this.field('title').value = this.selected.recording.title; this.view('rename-form').hidden = false; this.field('title').focus(); } };
+    this.button('rename').onclick = () => { if (this.selected) { this.field('title').value = recordingTitle(this.selected.recording); this.view('rename-form').hidden = false; this.field('title').focus(); } };
     this.button('cancel-rename').onclick = () => { this.view('rename-form').hidden = true; };
     this.view('rename-form').onsubmit = event => { event.preventDefault(); if (this.selected) { const selected = this.selected; void this.client.request<RecordingRow>(`recordings/${selected.recording.id}`, { title: this.field('title').value }, 'PATCH', selected.scope).then(row => { if (this.selected?.scope === selected.scope && this.selected.recording.id === selected.recording.id) this.selected = { ...row, scope: selected.scope }; this.view('rename-form').hidden = true; return this.refresh(); }).catch(e => this.failure(e)); } };
     this.field('files').onchange = () => { if (!this.discard()) { this.field('files').value = ''; return; } const files = Array.from(this.field('files').files || []); void this.importFiles(files); };
     this.field('source').onchange = () => { this.sourceFilter = this.field('source').value; try { window.localStorage.setItem('recdock.librarySource', this.sourceFilter); } catch { /* Preference is optional. */ } this.listSignature = ''; this.renderList(); };
-    this.button('trash').onclick = () => { if (!this.discard()) return; this.trash = !this.trash; this.button('trash').textContent = this.trash ? '返回录音列表' : '回收站'; this.clearSelected(); void this.refresh().catch(e => this.failure(e)); };
-    this.button('retry').onclick = () => { if (!this.selected) return; void this.client.request(`recordings/${this.selected.recording.id}/jobs`, { language: this.field('language').value }).then(() => this.refresh()).catch(e => this.failure(e)); };
+    this.button('trash').onclick = () => { if (!this.discard()) return; this.closeMenus(); this.trash = !this.trash; this.button('trash').textContent = this.trash ? '返回录音列表' : '回收站'; this.clearSelected(); void this.refresh().catch(e => this.failure(e)); };
+    this.button('retry').onclick = () => { if (!this.selected) return; void this.client.request(`recordings/${this.selected.recording.id}/jobs`, { language: this.language }).then(() => this.refresh()).catch(e => this.failure(e)); };
     this.button('cancel').onclick = () => { if (this.selected?.job) void this.client.request(`jobs/${this.selected.job.id}/cancel`, {}).then(() => this.refresh()).catch(e => this.failure(e)); };
     this.button('original').onclick = () => { if (this.selected) this.download(this.client.url(`recordings/${this.selected.recording.id}/original`)); };
     this.button('delete').onclick = () => { if (!this.selected || !this.discard() || !confirm('将这条录音移入本机回收站？正在运行的任务会取消，原音频与全文可从回收站恢复。')) return; void this.client.request(`recordings/${this.selected.recording.id}`, undefined, 'DELETE').then(() => { this.clearSelected(); return this.refresh(); }).catch(e => this.failure(e)); };
@@ -391,7 +411,7 @@ export class LibraryWorkspace {
   }
   private download(url: string, filename?: string) { const anchor = el('a'); anchor.href = url; if (filename) anchor.download = filename; anchor.click(); }
   private async importFiles(files: File[]) {
-    if (!files.length || this.importing) return; this.importing = true; const transcribe = this.importingWithTranscription, language = this.field('language').value as 'zh' | 'en'; this.button('import').disabled = true; this.button('import-only').disabled = true;
+    if (!files.length || this.importing) return; this.importing = true; const transcribe = this.importingWithTranscription, language = this.language; this.button('import-menu').disabled = true; this.button('import').disabled = true; this.button('import-only').disabled = true;
     try {
       for (const file of files) {
         if (!file.size || file.size > 1024 ** 3) throw new Error('请选择非空且不超过 1 GiB 的文件。');
@@ -399,7 +419,7 @@ export class LibraryWorkspace {
         this.trash = false; this.sourceFilter = 'all'; this.listFilter = 'all'; this.field('source').value = 'all'; this.field('list-filter').value = 'all'; this.field('list-search').value = ''; this.button('trash').textContent = '回收站'; await this.select({ ...await this.client.request<RecordingRow>(`recordings/${result.recording.id}`, undefined, 'GET', 'personal'), scope: 'personal' });
         this.notice(result.processingError?.message || (result.duplicate ? '已找到相同原文件，复用已有录音与处理结果。' : result.recording.state === 'stored' ? (result.job ? '录音已保存，已按你的选择排队转写。本机服务运行时可关闭页面。' : '录音已保存，尚未转写。可随时点击“开始转写”。') : '原文件已保存；此文件暂时无法完整解码，尚未转写。'));
       }
-    } catch (e) { this.failure(e); } finally { this.importing = false; this.button('import').disabled = false; this.button('import-only').disabled = false; this.field('files').value = ''; }
+    } catch (e) { this.failure(e); } finally { this.importing = false; this.button('import-menu').disabled = false; this.button('import').disabled = false; this.button('import-only').disabled = false; this.field('files').value = ''; }
   }
   async acceptDeviceDownload(recording: PlayableRecording & { originalData: Uint8Array }, deviceId: string, sessionId: number, options: DownloadOptions) {
     await this.refreshContext();

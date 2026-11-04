@@ -6,13 +6,14 @@ import { JSDOM } from 'jsdom';
 import { LibraryWorkspace } from '../src/library/workspace.ts';
 import type { DeviceWorkspaceState } from '../src/library/workspace.ts';
 import type { AudioTranscript, TranscriptRevision, LibraryRecording } from '../src/library/types.ts';
+import { deviceRecordingTitle } from '../src/library/recording-title.ts';
 
 const fixture = JSON.parse(readFileSync(new URL('../contracts/fixtures/contract-cases.json', import.meta.url), 'utf8')).bases.transcript.data as AudioTranscript;
 async function until(check: () => boolean) {
   const end = Date.now() + 2000;
   while (!check()) { if (Date.now() > end) throw Error('DOM condition timed out'); await new Promise(r => setTimeout(r, 5)); }
 }
-function setup(options: Partial<ConstructorParameters<typeof LibraryWorkspace>[0]> = {}) {
+function setup(options: Partial<ConstructorParameters<typeof LibraryWorkspace>[0]> = {}, initialLanguage?: string) {
   const dom = new JSDOM('<header class="topbar"><span class="local-badge"></span></header><main></main>', { url: 'http://localhost:5173/' });
   const keys = ['window', 'document', 'Option', 'location', 'history', 'confirm', 'fetch']; const previous = new Map(keys.map(k => [k, Reflect.get(globalThis, k)]));
   for (const key of ['window', 'document', 'Option', 'location', 'history']) Reflect.set(globalThis, key, key === 'window' ? dom.window : dom.window[key]);
@@ -22,10 +23,10 @@ function setup(options: Partial<ConstructorParameters<typeof LibraryWorkspace>[0
   dom.window.HTMLElement.prototype.scrollIntoView = () => {};
   const downloads: string[] = []; dom.window.HTMLAnchorElement.prototype.click = function(this: HTMLAnchorElement) { downloads.push(this.href); };
   let current = structuredClone(fixture), reviewedIds: string[] = [], conflict = false, accountEmpty = true, personalEmpty = false, accountAvailable = true, accountFailure = false, identity = 'scope_testaccount';
-  let source: LibraryRecording['source'] = { kind: 'import', deviceId: null, sessionId: null };
+  let source: LibraryRecording['source'] = { kind: 'import', deviceId: null, sessionId: null }, accountTitle = '账号录音';
   const history = new Map([[current.revisionId, structuredClone(current)]]);
   const calls: { path: string; method: string; scope: string | null; data: Record<string, unknown> | undefined }[] = [];
-  const row = (scope = 'personal') => ({ recording: { schemaVersion: 1, id: current.recordingId, scopeId: scope === 'personal' ? 'scope_personal' : identity, title: scope === 'personal' ? '合成界面测试' : '账号录音', source: scope === 'personal' ? source : { kind: 'ble', deviceId: 'test-device', sessionId: 42 }, sourceSha256: current.sourceSha256, durationMs: current.durationMs, createdAtMs: 1, state: 'stored', assets: [] },
+  const row = (scope = 'personal') => ({ recording: { schemaVersion: 1, id: current.recordingId, scopeId: scope === 'personal' ? 'scope_personal' : identity, title: scope === 'personal' ? '合成界面测试' : accountTitle, source: scope === 'personal' || source.kind === 'ble' ? source : { kind: 'ble', deviceId: 'test-device', sessionId: 42 }, sourceSha256: current.sourceSha256, durationMs: current.durationMs, createdAtMs: 1, state: 'stored', assets: [] },
     job: { id: 'job_test', state: 'succeeded', stage: null, error: null }, runtime: null, revision: { revisionId: current.revisionId, machineRevisionId: fixture.revisionId, reviewedIds }, language: 'zh' });
   const json = (value: unknown, status = 200) => new Response(JSON.stringify(value), { status, headers: { 'Content-Type': 'application/json' } });
   Reflect.set(globalThis, 'fetch', async (input: string, options: RequestInit = {}) => {
@@ -55,9 +56,10 @@ function setup(options: Partial<ConstructorParameters<typeof LibraryWorkspace>[0
     if (path.endsWith('/exports')) return json({ url: '/api/library/exports/exp_test', filename: 'test.md' });
     throw Error('Unexpected test API: ' + path);
   });
+  if (initialLanguage) dom.window.localStorage.setItem('recdock.transcriptionLanguage', initialLanguage);
   const workspace = new LibraryWorkspace({ parent: document.querySelector('main')!, onVisibility: () => {}, ...options });
   const query = <T extends Element = HTMLElement>(value: string) => workspace.root.querySelector<T>(value)!;
-  return { workspace, dom, query, calls, downloads, set source(value: LibraryRecording['source']) { source = value; if (source.kind === 'ble') { personalEmpty = true; accountEmpty = false; } }, set accountAvailable(value: boolean) { accountAvailable = value; }, set accountFailure(value: boolean) { accountFailure = value; }, set identity(value: string) { identity = value; }, set conflict(value: boolean) { conflict = value; }, set accountEmpty(value: boolean) { accountEmpty = value; },
+  return { workspace, dom, query, calls, downloads, set source(value: LibraryRecording['source']) { source = value; if (source.kind === 'ble') { personalEmpty = true; accountEmpty = false; } }, set accountAvailable(value: boolean) { accountAvailable = value; }, set accountFailure(value: boolean) { accountFailure = value; }, set identity(value: string) { identity = value; }, set accountTitle(value: string) { accountTitle = value; }, set conflict(value: boolean) { conflict = value; }, set accountEmpty(value: boolean) { accountEmpty = value; },
     async select() { await workspace.open(); query<HTMLButtonElement>('.library-record').click(); await until(() => !!query('.library-paragraph')); },
     async close() { workspace.close(); dom.window.close(); for (const [key, value] of previous) Reflect.set(globalThis, key, value); } };
 }
@@ -118,7 +120,7 @@ test('发现与选择设备录音不触发下载；两种操作明确传递语�
     assert.equal(downloads.length, 0);
     f.query<HTMLButtonElement>('.library-device-record').click();
     assert.equal(downloads.length, 0); assert.equal(f.query<HTMLElement>('[data-view="device-detail"]').hidden, false);
-    f.query<HTMLSelectElement>('[data-field="language"]').value = 'en';
+    f.workspace.setTranscriptionLanguage('en');
     f.query<HTMLButtonElement>('[data-action="download-only"]').click();
     f.query<HTMLButtonElement>('[data-action="download-transcribe"]').click();
     assert.deepEqual(downloads, [{ sessionId: 42, language: 'en', transcribe: false }, { sessionId: 42, language: 'en', transcribe: true }]);
@@ -141,7 +143,7 @@ test('导入和仅导入使用各自的明确选择，默认不会因展示页�
     f.query<HTMLButtonElement>('[data-action="import-only"]').click(); files.dispatchEvent(new f.dom.window.Event('change'));
     await until(() => inputs.length === 1 && !f.query<HTMLButtonElement>('[data-action="import"]').disabled);
     assert.equal(inputs[0].transcribe, false);
-    f.query<HTMLSelectElement>('[data-field="language"]').value = 'en';
+    f.workspace.setTranscriptionLanguage('en');
     f.query<HTMLButtonElement>('[data-action="import"]').click(); files.dispatchEvent(new f.dom.window.Event('change'));
     await until(() => inputs.length === 2 && !f.query<HTMLButtonElement>('[data-action="import"]').disabled);
     assert.equal(inputs[1].transcribe, true); assert.equal(inputs[1].language, 'en');
@@ -294,5 +296,99 @@ test('直接切换账号立即移除旧账号详情，等待新身份校验后�
     f.identity = 'scope_account_b'; await f.workspace.refreshIdentity();
     assert.equal(f.workspace.root.querySelectorAll('[data-scope="account"]').length, 1);
     assert.equal(f.query('[data-view="detail"]').hasAttribute('hidden'), true);
+  } finally { await f.close(); }
+});
+
+test('导入与筛选按需展开，菜单互斥、筛选重置和 Escape 不打断校对与播放', async () => {
+  const f = setup();
+  try {
+    await f.select();
+    const audio = f.query<HTMLAudioElement>('audio'), src = audio.src; audio.currentTime = 1.2;
+    f.query<HTMLButtonElement>('.library-edit').click();
+    const editor = f.query<HTMLTextAreaElement>('.library-editor textarea'); editor.value = '菜单不能丢失的草稿';
+    let fileChoosers = 0; f.query<HTMLInputElement>('[data-field="files"]').click = () => { fileChoosers++; };
+    assert.equal(f.query<HTMLElement>('[data-view="import-menu"]').hidden, true);
+    assert.equal(f.query<HTMLElement>('[data-view="filter-menu"]').hidden, true);
+    f.query<HTMLButtonElement>('[data-action="import-menu"]').click();
+    assert.equal(f.query<HTMLElement>('[data-view="import-menu"]').hidden, false);
+    assert.equal(fileChoosers, 0);
+    f.query<HTMLButtonElement>('[data-action="import-only"]').click();
+    assert.equal(fileChoosers, 1); assert.equal(f.query<HTMLElement>('[data-view="import-menu"]').hidden, true);
+    f.query<HTMLButtonElement>('[data-action="import-menu"]').click();
+    f.query<HTMLButtonElement>('[data-action="filter-menu"]').click();
+    assert.equal(f.query<HTMLElement>('[data-view="import-menu"]').hidden, true);
+    for (const [name, value] of [['source', 'ble'], ['list-filter', 'processing']]) { const select = f.query<HTMLSelectElement>(`[data-field="${name}"]`); select.value = value; select.dispatchEvent(new f.dom.window.Event('change')); }
+    assert.equal(f.query('[data-view="filter-count"]').textContent, '2');
+    assert.equal(f.workspace.root.querySelectorAll('.library-record').length, 0);
+    f.query<HTMLButtonElement>('[data-action="reset-filters"]').click();
+    assert.equal(f.query<HTMLElement>('[data-view="filter-count"]').hidden, true);
+    assert.equal(f.workspace.root.querySelectorAll('.library-record').length, 1);
+    f.dom.window.document.dispatchEvent(new f.dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    assert.equal(f.query<HTMLElement>('[data-view="filter-menu"]').hidden, true);
+    assert.equal(f.dom.window.document.activeElement, f.query('[data-action="filter-menu"]'));
+    assert.equal(f.query('.library-editor textarea'), editor); assert.equal(editor.value, '菜单不能丢失的草稿');
+    assert.equal(audio.src, src); assert.equal(audio.currentTime, 1.2);
+    assert.equal(f.calls.filter(c => c.method === 'POST').length, 0);
+  } finally { await f.close(); }
+});
+
+test('统一语言偏好可恢复和保存，选择已有录音不会覆盖设置', async () => {
+  const f = setup({}, 'en');
+  try {
+    assert.equal(f.workspace.transcriptionLanguage, 'en');
+    await f.select(); // The existing recording's language is zh.
+    assert.equal(f.workspace.transcriptionLanguage, 'en');
+    assert.equal(f.workspace.root.querySelector('[data-field="language"]'), null);
+    f.workspace.setTranscriptionLanguage('zh');
+    assert.equal(f.workspace.transcriptionLanguage, 'zh');
+    assert.equal(f.dom.window.localStorage.getItem('recdock.transcriptionLanguage'), 'zh');
+  } finally { await f.close(); }
+});
+
+test('精简设备栏显示真实录音状态和零电量，断开后清空过期数据', async () => {
+  const f = setup();
+  try {
+    await f.workspace.open();
+    f.workspace.updateDevice({ ...deviceState(), battery: 0, status: '正在录音', duration: '00:01:23' });
+    assert.equal(f.query('[data-view="device-battery"]').textContent, '0%');
+    assert.equal(f.query('[data-view="battery-fill"]').getAttribute('width'), '0');
+    assert.equal(f.query('[data-view="device-status"]').textContent, '正在录音');
+    assert.equal(f.query('[data-view="device-duration"]').textContent, '00:01:23');
+    f.workspace.updateDevice({ ...deviceState(), connected: false, canDownload: false, files: [] });
+    assert.equal(f.query('[data-view="device-name"]').textContent, '连接 PLAUD');
+    assert.equal(f.query('[data-view="device-battery"]').textContent, '');
+    assert.equal(f.query('[data-view="device-duration"]').textContent, '');
+    assert.equal(f.workspace.root.querySelector('[data-action="connect-device"]'), null);
+  } finally { await f.close(); }
+});
+
+test('已下载设备默认标题显示本地日期，按日期或原始编号搜索，自定义名不覆盖', async () => {
+  const f = setup(), sessionId = 1793762511;
+  try {
+    f.source = { kind: 'ble', deviceId: 'test-device', sessionId }; f.accountTitle = `plaud-${sessionId}`;
+    await f.select();
+    const expected = deviceRecordingTitle(sessionId);
+    assert.equal(f.query('.library-record strong').textContent, expected);
+    assert.equal(f.query('[data-view="title"]').textContent, expected);
+    assert.match(f.query<HTMLButtonElement>('.library-record').title, /1793762511/);
+    const search = f.query<HTMLInputElement>('[data-field="list-search"]');
+    for (const query of [expected.slice(0, 10), String(sessionId)]) { search.value = query; search.dispatchEvent(new f.dom.window.Event('input')); assert.equal(f.workspace.root.querySelectorAll('.library-record').length, 1); }
+    search.value = ''; search.dispatchEvent(new f.dom.window.Event('input'));
+    f.accountTitle = '项目例会'; await f.workspace.refreshIdentity();
+    assert.equal(f.query('.library-record strong').textContent, '项目例会');
+    assert.equal(f.query('[data-view="title"]').textContent, '项目例会');
+    assert.equal(f.calls.filter(c => c.method !== 'GET').length, 0);
+  } finally { await f.close(); }
+});
+
+test('待下载设备录音使用相同日期标题，文件编号继续用于选择与下载', async () => {
+  const calls: number[] = [], f = setup({ onDownload: async sessionId => { calls.push(sessionId); } }), sessionId = 1793762511;
+  try {
+    await f.workspace.open(); f.workspace.updateDevice({ ...deviceState(), files: [{ sessionId, size: 4000 }] });
+    const file = f.query<HTMLButtonElement>('.library-device-record');
+    assert.equal(file.querySelector('strong')!.textContent, deviceRecordingTitle(sessionId));
+    file.click(); assert.equal(f.query('[data-view="device-file-title"]').textContent, deviceRecordingTitle(sessionId));
+    f.query<HTMLButtonElement>('[data-action="download-only"]').click();
+    assert.deepEqual(calls, [sessionId]);
   } finally { await f.close(); }
 });

@@ -39,57 +39,58 @@ body.library-open main { width: 100%; max-width: none; height: 100dvh; margin: 0
 .audio-library input::placeholder, .audio-library textarea::placeholder { color: #9a9a9a; }
 .audio-library :is(button, input, select, textarea, summary):focus-visible { outline: 2px solid #999; outline-offset: 3px; }
 .audio-library input[type=checkbox] { accent-color: #222; }
-.library-appbar {
-  display: flex; align-items: center; flex: 0 0 68px;
-  min-width: 0; padding: 0 24px; background: #fff;
-  border-bottom: 1px solid var(--border); z-index: 10;
-}
-.audio-library .library-brand {
-  display: flex; align-items: center; gap: 16px; flex-shrink: 0;
-  width: calc(var(--sidebar-width) - 24px); padding: 0; border: 0; border-radius: 0;
-  background: transparent; text-align: left;
-}
-.library-brand strong { font-size: 18px; font-weight: 650; letter-spacing: -.5px; color: #151515; }
-.library-brand span { padding-left: 12px; border-left: 1px solid #ddd; color: #888; font-size: 11px; font-weight: 400; }
-.library-device-bar { display: flex; align-items: center; justify-content: space-between; flex: 1; min-width: 0; gap: 20px; padding-left: 30px; }
-.library-device-identity { display: flex; align-items: center; gap: 11px; min-width: 0; }
-.library-device-copy { display: flex; align-items: center; gap: 14px; min-width: 0; }
-.library-device-identity strong { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px; }
-.library-device-identity [data-view=device-status] { font-size: 12px; color: #888; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.library-device-dot { width: 7px; height: 7px; flex-shrink: 0; border-radius: 50%; background: #bdbdbd; }
-.connected .library-device-dot { background: #222; box-shadow: 0 0 0 4px #f1f1f1; }
-.library-device-controls { display: flex; align-items: center; gap: 16px; flex-shrink: 0; font-size: 12px; color: #777; }
-.library-device-controls [data-view=device-duration] { font-variant-numeric: tabular-nums; color: #222; }
-.library-device-controls [data-view=device-duration]:empty,
-.library-device-controls [data-view=device-battery]:empty { display: none; }
-.library-device-controls [data-action=workspace-settings] { border-color: transparent; }
-.library-device-anchor, .library-account-anchor { position: relative; min-width: 0; }
-.audio-library button.library-device-identity { display: flex; align-items: center; gap: 10px; border-color: transparent; background: transparent; text-align: left; padding: 8px 0; }
-.library-device-copy { min-width: 0; }
-.library-device-copy > span { display: block; }
-.connecting .library-device-dot { background: #666; box-shadow: 0 0 0 4px #eee; }
-.library-popover { position: absolute; top: calc(100% + 14px); left: -12px; width: 260px; padding: 10px; border: 1px solid #e1e1e1; border-radius: 9px; background: #fff; box-shadow: 0 8px 28px #00000012; z-index: 50; }
-.library-account-menu { left: auto; right: 0; }
+.library-appbar { display: flex; align-items: center; justify-content: space-between; flex: 0 0 64px; min-width: 0; gap: 20px; padding: 0 24px; background: #fff; border-bottom: 1px solid var(--border); z-index: 10; }
+.library-header-left { display: flex; align-items: center; gap: 28px; min-width: 0; }
+.library-brand { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.library-brand img { display: block; width: 32px; height: 32px; }
+.library-brand strong { font-size: 18px; font-weight: 650; letter-spacing: -.7px; color: #202020; }
+.library-device-bar { min-width: 0; padding-left: 24px; border-left: 1px solid #e7e7e7; }
+.audio-library button.library-device-identity { display: flex; align-items: center; min-width: 0; gap: 10px; padding: 6px 0; border: 0; background: transparent; color: #777; text-align: left; white-space: nowrap; }
+.audio-library button.library-device-identity:hover { background: transparent; color: #222; }
+.library-device-identity strong { min-width: 0; max-width: 160px; overflow: hidden; text-overflow: ellipsis; font-size: 12px; font-weight: 500; color: #444; }
+.library-device-identity [data-view=device-status] { max-width: 120px; overflow: hidden; text-overflow: ellipsis; font-size: 11px; }
+.library-device-identity [data-view=device-duration] { font-size: 10px; font-variant-numeric: tabular-nums; }
+.library-device-identity > svg { width: 14px; height: 14px; flex-shrink: 0; color: #aaa; }
+.library-device-identity [data-view=device-status]:empty, .library-device-identity [data-view=device-duration]:empty, .library-battery:has([data-view=device-battery]:empty) { display: none; }
+.library-device-dot { width: 5px; height: 5px; flex-shrink: 0; border-radius: 50%; background: #c4c4c4; }
+.connected .library-device-dot { background: #333; }
+.connecting .library-device-dot { background: #888; box-shadow: 0 0 0 3px #eee; }
+.library-battery { display: flex; align-items: center; gap: 5px; font-size: 10px; color: #777; }
+.library-battery svg { width: 18px; height: 12px; }
+.library-appbar-actions { display: flex; align-items: center; gap: 20px; flex-shrink: 0; }
+.audio-library .library-appbar-actions > button, .audio-library [data-action=account-menu] { display: flex; align-items: center; gap: 7px; padding: 7px 3px; border: 0; background: transparent; color: #777; font-size: 11px; }
+.audio-library .library-appbar-actions button:hover { color: #222; }
+.library-appbar-actions svg { width: 18px; height: 18px; }
+.library-appbar-actions [data-action=account-menu] > svg:last-child { width: 12px; height: 12px; color: #aaa; }
+.library-device-anchor, .library-account-anchor, .library-import-anchor, .library-filter-anchor { position: relative; min-width: 0; }
+.library-popover { position: absolute; top: calc(100% + 12px); left: -10px; width: 260px; padding: 8px; border: 1px solid #e1e1e1; border-radius: 9px; background: #fff; box-shadow: 0 8px 28px #00000012; z-index: 50; }
+.library-account-menu, .library-import-menu, .library-filter-menu { left: auto; right: 0; }
 .library-popover > p { margin: 5px 8px 9px; font-size: 11px; line-height: 1.7; color: #777; overflow-wrap: anywhere; }
 .library-popover .library-menu-label { color: #999; font-size: 10px; }
 .audio-library .library-popover button { display: block; width: 100%; text-align: left; border: 0; padding: 9px 8px; }
 .library-layout { display: grid; grid-template-columns: var(--sidebar-width) minmax(0, 1fr); flex: 1; min-height: 0; overflow: hidden; }
 .library-sidebar { display: flex; flex-direction: column; min-height: 0; background: #f8f8f8; border-right: 1px solid #e5e5e5; }
-.library-sidebar-heading { display: flex; align-items: center; gap: 9px; padding: 24px 22px 18px; }
-.library-sidebar-heading h1 { font-size: 18px; font-weight: 600; letter-spacing: -.4px; margin: 0; }
-.library-sidebar-heading > span { border-radius: 5px; padding: 1px 6px; background: #eaeaea; color: #777; font-size: 10px; }
-.library-toolbar { padding: 0 22px 16px; }
-.library-import-actions { display: flex; gap: 8px; }
-.library-import-actions > button { flex: 1; padding: 9px 8px; white-space: nowrap; font-size: 11px; }
-.library-toolbar > label { display: flex; align-items: center; justify-content: space-between; margin-top: 14px; gap: 12px; font-size: 11px; color: #888; }
-.library-toolbar select { max-width: 175px; padding: 5px 8px; font-size: 11px; }
-.library-browse-tools { padding: 0 22px 12px; border-bottom: 1px solid #eaeaea; }
-.library-scope-label { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 11px; color: #888; margin-bottom: 15px; }
-.library-scope-label select { max-width: 175px; padding: 5px 8px; font-size: 11px; }
-.audio-library .library-list-search { display: block; width: 100%; padding: 10px 12px; margin-bottom: 12px; border-color: #ddd; background: #fff; }
-.library-list-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.audio-library .library-list-filter { padding: 5px 2px; border-color: transparent; background: transparent; color: #626262; font-size: 11px; max-width: 160px; }
-.audio-library [data-action=trash] { border: 0; padding: 5px 2px; background: transparent; font-size: 11px; color: #888; white-space: nowrap; }
+.library-sidebar-heading { display: flex; align-items: center; gap: 8px; padding: 20px 18px 14px; }
+.library-sidebar-heading h1 { font-size: 16px; font-weight: 600; letter-spacing: -.4px; margin: 0; }
+.library-sidebar-heading > span { color: #999; font-size: 11px; }
+.library-import-anchor { margin-left: auto; }
+.audio-library [data-action=import-menu] { display: flex; align-items: center; gap: 3px; padding: 6px 9px; font-size: 11px; }
+.library-import-anchor svg { width: 12px; height: 12px; opacity: .7; }
+.library-import-menu { width: 180px; }
+.library-browse-tools { display: flex; align-items: center; gap: 8px; padding: 0 18px 14px; border-bottom: 1px solid #eaeaea; }
+.audio-library .library-list-search { display: block; min-width: 0; width: 100%; padding: 8px 10px; border-color: #e5e5e5; background: #fff; font-size: 11px; }
+.library-filter-anchor { flex-shrink: 0; }
+.audio-library [data-action=filter-menu] { display: flex; align-items: center; gap: 4px; padding: 7px 8px; border-color: #e5e5e5; background: transparent; font-size: 11px; color: #777; }
+.audio-library [data-action=filter-menu].active { color: #222; border-color: #ccc; background: #eee; }
+.library-filter-anchor > button svg { width: 15px; height: 15px; }
+.library-filter-count { display: inline-grid; place-items: center; min-width: 14px; height: 14px; padding: 0 3px; border-radius: 4px; background: #333; color: #fff; font-size: 9px; }
+.library-filter-menu { width: 250px; padding: 14px; }
+.library-filter-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; font-size: 12px; }
+.library-filter-heading strong { font-weight: 500; }
+.audio-library .library-filter-heading button { width: auto; padding: 0; font-size: 10px; color: #888; }
+.library-filter-menu label { display: grid; gap: 7px; margin: 12px 0; color: #999; font-size: 10px; }
+.library-filter-menu select { width: 100%; font-size: 11px; }
+.audio-library .library-filter-menu [data-action=trash] { border-top: 1px solid #eee; border-radius: 0; margin-top: 15px; padding: 12px 0 0; color: #888; font-size: 11px; }
 .library-file-list { flex: 1; min-height: 0; overflow: auto; overscroll-behavior: contain; padding: 10px 12px; }
 .audio-library .library-record { display: flex; align-items: flex-start; gap: 11px; width: 100%; padding: 13px 10px; margin: 3px 0; text-align: left; border: 0; background: transparent; border-radius: 7px; }
 .audio-library .library-record:hover { background: #efefef; }
@@ -102,11 +103,6 @@ body.library-open main { width: 100%; max-width: none; height: 100dvh; margin: 0
 .library-record.selected strong { font-weight: 600; }
 .library-record small { display: block; font-size: 10px; line-height: 1.7; color: #898989; margin-top: 5px; }
 .library-list-empty { padding: 22px 12px; font-size: 12px; color: #929292; line-height: 1.9; }
-.library-sidebar-footer { display: block; flex-shrink: 0; border-top: 1px solid #e8e8e8; padding: 14px 22px; }
-.library-environment { font-size: 10px; color: #888; line-height: 1.8; margin: 0 0 5px; }
-.library-help { font-size: 10px; color: #9a9a9a; }
-.library-help summary { cursor: pointer; }
-.library-help p { line-height: 1.8; margin: 10px 0 0; }
 .library-detail { min-width: 0; min-height: 0; display: flex; flex-direction: column; background: #fff; overflow: hidden; }
 .library-detail > [data-view=detail], .library-detail > [data-view=device-detail] { display: flex; flex-direction: column; min-height: 0; height: 100%; }
 .library-detail > [data-view=detail] > :not([data-view=reader]) { flex-shrink: 0; }
@@ -246,6 +242,9 @@ body.library-open main { width: 100%; max-width: none; height: 100dvh; margin: 0
 .workspace-dialog .flow-progress li[data-status=active]:before { background: #222; border-color: #222; }
 .workspace-dialog .flow-spinner { border-color: #eee; border-top-color: #333; }
 .workspace-dialog .overlay-device-actions { display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 22px; }
+.workspace-dialog .settings-transcription .field { display: flex; align-items: center; justify-content: space-between; gap: 24px; max-width: 420px; font-size: 12px; }
+.workspace-dialog .settings-transcription select { flex: 1; max-width: 240px; padding: 9px 10px; border: 1px solid #ddd; border-radius: 6px; font: inherit; font-size: 12px; }
+.workspace-dialog .settings-local-files code { display: block; font-size: 10px; line-height: 1.8; color: #888; overflow-wrap: anywhere; user-select: all; }
 .workspace-dialog .section-heading { margin-bottom: 14px; }
 .workspace-dialog .metrics { margin-top: 22px; }
 .workspace-dialog .metric, .workspace-dialog .state-card { background: #fafafa; border-color: #e8e8e8; }
@@ -254,10 +253,6 @@ body.library-open main { width: 100%; max-width: none; height: 100dvh; margin: 0
 .workspace-dialog .files-empty { color: #999; border-color: #e5e5e5; background: #fafafa; }
 @media (max-width: 1100px) {
   .audio-library { --sidebar-width: 276px; }
-  .library-brand span { display: none; }
-  .library-device-copy { flex-direction: column; align-items: flex-start; gap: 2px; }
-  .library-device-identity [data-view=device-status] { max-width: 300px; font-size: 10px; }
-  .library-device-controls { gap: 10px; }
   .library-record-header { padding-left: 28px; padding-right: 28px; }
   .library-record-actions, .library-files, .library-document-options { padding-left: 28px; padding-right: 28px; }
   .library-job { margin-left: 28px; margin-right: 28px; }
@@ -267,18 +262,15 @@ body.library-open main { width: 100%; max-width: none; height: 100dvh; margin: 0
 @media (max-width: 760px) {
   .audio-library { --sidebar-width: 240px; }
   .library-appbar { padding: 0 16px; }
-  .audio-library .library-brand { width: auto; margin-right: 20px; }
-  .library-brand strong { font-size: 19px; }
-  .library-device-bar { padding-left: 0; gap: 12px; }
-  .library-device-identity strong { max-width: 160px; font-size: 12px; }
-  .library-device-identity [data-view=device-status] { max-width: 170px; }
-  .library-device-controls { gap: 6px; }
-  .library-device-controls button { padding: 5px 7px; font-size: 10px; }
-  .library-device-controls [data-view=device-battery] { display: none; }
-  .library-sidebar-heading, .library-sidebar-footer { padding-left: 16px; padding-right: 16px; }
-  .library-toolbar, .library-browse-tools { padding-left: 16px; padding-right: 16px; }
-  .library-import-actions { gap: 5px; }
-  .library-import-actions > button { font-size: 10px; }
+  .library-header-left { gap: 20px; }
+  .library-brand strong { display: none; }
+  .library-device-bar { padding-left: 20px; }
+  .library-device-identity strong { max-width: 110px; }
+  .library-device-identity [data-view=device-duration] { display: none; }
+  .library-appbar-actions { gap: 14px; }
+  .library-sidebar-heading { padding-left: 14px; padding-right: 14px; }
+  .library-browse-tools { padding-left: 14px; padding-right: 14px; }
+  .library-filter-menu { width: 220px; }
   .library-speakers [data-view=speakers] { grid-template-columns: 1fr; }
   .library-record-header { padding: 22px 20px 14px; }
   .library-record-header h2 { font-size: 21px; }
@@ -292,23 +284,22 @@ body.library-open main { width: 100%; max-width: none; height: 100dvh; margin: 0
   body.library-open { overflow: auto; }
   body.library-open main { height: auto; min-height: 100dvh; }
   .audio-library { height: auto; min-height: 100dvh; }
-  .library-appbar { position: sticky; top: 0; height: 68px; flex-basis: 68px; }
-  .library-brand strong { font-size: 16px; }
-  .library-device-controls [data-view=device-duration] { display: none; }
-  .library-device-identity strong { max-width: 140px; }
-  .library-device-identity [data-view=device-status] { max-width: 140px; }
+  .library-appbar { position: sticky; top: 0; height: 60px; flex-basis: 60px; gap: 12px; padding: 0 12px; }
+  .library-header-left { gap: 12px; }
+  .library-device-bar { padding-left: 12px; }
+  .library-device-identity { gap: 7px !important; }
+  .connected .library-device-identity strong { display: none; }
+  .library-device-identity [data-view=device-status] { max-width: 80px; }
+  .library-device-identity > svg { display: none; }
+  .library-appbar-actions { gap: 10px; }
+  .library-appbar-actions [data-action=account-menu] > svg:last-child { display: none; }
   .library-layout { display: flex; flex-direction: column; overflow: visible; }
   .library-sidebar { max-height: 390px; border-right: 0; border-bottom: 1px solid var(--border); }
   .library-sidebar-heading { padding-top: 16px; padding-bottom: 10px; }
   .library-sidebar-heading h1 { font-size: 16px; }
-  .library-toolbar { padding-bottom: 10px; }
-  .library-toolbar > label { margin-top: 8px; }
-  .library-browse-tools { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 8px 12px; padding-bottom: 10px; }
-  .library-scope-label { grid-column: 1/-1; margin-bottom: 0; }
-  .audio-library .library-list-search { margin-bottom: 0; }
-  .library-file-list { max-height: 150px; min-height: 80px; }
-  .library-sidebar-footer { display: none; }
-  .library-detail { min-height: 520px; height: calc(100dvh - 68px); }
+  .library-browse-tools { padding-bottom: 12px; }
+  .library-file-list { max-height: 180px; min-height: 80px; }
+  .library-detail { min-height: 520px; height: calc(100dvh - 60px); }
   .library-record-header { gap: 10px; }
   .library-record-header h2 { font-size: 20px; }
   .library-player { padding-left: 12px; padding-right: 12px; }

@@ -30,7 +30,7 @@ Session restoration verifies the account ID against the server profile. Refresh 
 
 - Command 3 provides device state; state code 4099 indicates recording.
 - Commands 20–23 provide recording start, pause, resume and stop events. Command 19 includes duration and new-file events and can require an ACK.
-- Directory command 26 uses a request ID and ordered pages. File IDs are identifiers, not assumed recording timestamps.
+- Directory command 26 uses a request ID and ordered pages. File IDs remain opaque identifiers for protocol and transfer operations. For display only, plausible Unix-second IDs in default recording titles are formatted in the browser’s current time zone; counters and unknown IDs retain their original labels.
 - Download command 28, type-02 data frames, and command-29 file tails are matched by file session and continuous byte offset.
 - Gaps and timeouts use bounded retries after stopping and acknowledging the current transfer. Download state is retained only in page memory for the same account, device and file identity.
 - Recording or pause defers directory and download activity. Starting a recording during transfer pauses synchronization.

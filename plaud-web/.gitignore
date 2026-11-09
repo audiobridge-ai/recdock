@@ -1,0 +1,42 @@
+node_modules/
+dist/
+.env*
+*.local.json
+credentials*.json
+!credentials.example.json
+.DS_Store
+
+# Local recordings, logs, account caches and keys.
+*.bin
+*.ogg
+*.opus
+*.wav
+*.mp3
+*.m4a
+*.log
+plaud-ble-log*.txt
+vault*.json
+master-key*
+*.pem
+*.key
+*.p12
+*.pfx
+session*.json
+
+# Generated native helpers and third-party analysis artifacts.
+*.app/
+*.apk
+*.aab
+*.ipa
+decompiled/
+.rea-runtime/
+.rea/
+coverage/
+*.tsbuildinfo
+
+# Local audio models, Python environments, private fixtures and benchmark outputs.
+.local-audio/
+worker/.venv/
+worker/.pytest_cache/
+**/__pycache__/
+*.pyc

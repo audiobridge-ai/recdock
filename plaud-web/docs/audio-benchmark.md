@@ -9,7 +9,7 @@
 工程内的 `worker/.venv` 已准备，依赖完整性检查通过。进入工程后运行：
 
 ```sh
-cd /path/to/recdock
+cd /path/to/recdock/plaud-web
 bash scripts/audio-spike.sh run --suite all --diarizer-device mps
 ```
 

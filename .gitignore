@@ -1,12 +1,37 @@
+# Workstation files and generated build output.
+.DS_Store
+.idea/
+*.iml
+*.ipr
+*.iws
 node_modules/
 dist/
+build/
+coverage/
+__pycache__/
+*.pyc
+*.tsbuildinfo
+
+# Local credentials, signing material and account caches.
 .env*
 *.local.json
 credentials*.json
 !credentials.example.json
-.DS_Store
+vault*.json
+master-key*
+session*.json
+*.pem
+*.key
+*.p12
+*.pfx
+*.keystore
+*.jks
+key.properties
+xcuserdata/
+*.xcuserstate
 
-# Local recordings, logs, account caches and keys.
+# User recordings, runtime state, models and local reports.
+.local-audio/
 *.bin
 *.ogg
 *.opus
@@ -15,28 +40,11 @@ credentials*.json
 *.m4a
 *.log
 plaud-ble-log*.txt
-vault*.json
-master-key*
-*.pem
-*.key
-*.p12
-*.pfx
-session*.json
-
-# Generated native helpers and third-party analysis artifacts.
 *.app/
 *.apk
 *.aab
 *.ipa
-decompiled/
-.rea-runtime/
 .rea/
-coverage/
-*.tsbuildinfo
-
-# Local audio models, Python environments, private fixtures and benchmark outputs.
-.local-audio/
-worker/.venv/
-worker/.pytest_cache/
-**/__pycache__/
-*.pyc
+.rea-cli/
+.rea-runtime/
+decompiled/

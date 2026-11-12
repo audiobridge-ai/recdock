@@ -1,7 +1,7 @@
 {
   "version": "1.0.0-rc.2",
   "date": "2026-11-12",
-  "status": "local-candidate-verified-publication-pending",
+  "status": "candidate-published",
   "hardware": {
     "model": "MacBook Pro",
     "chip": "Apple M3 Pro",
@@ -31,7 +31,9 @@
     "quitInterruptedAndSameJobResumed": true,
     "chatgptRealAttachmentUserMessageConversationReceipt": true,
     "sameSubmissionReopenedWithoutDuplicate": true,
-    "websiteDesktopAndNarrowWindow": true
+    "websiteDesktopAndNarrowWindow": true,
+    "finalRc2ChatgptAttachmentObserved": true,
+    "websiteAnonymousProductionAccess": true
   },
   "resume": {
     "recordingId": "rec_5b33af704e86403f92978780dc04a8ad",

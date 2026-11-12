@@ -6,6 +6,6 @@
 node website/build.mjs
 ```
 
-输出 `website/dist/`，也可使用 Python 构建入口。独立 Vercel 项目的 Root Directory 为 `website`，Build Command 为 `node build.mjs`，Output Directory 为 `dist`，无需安装依赖。已完成受保护预览，生产发布在候选附件上传完成后推进；原 `audio-bridge` 保持不变。
+输出 `website/dist/`，也可使用 Python 构建入口。独立 Vercel 项目的 Root Directory 为 `website`，Build Command 为 `node build.mjs`，Output Directory 为 `dist`，无需安装依赖。[生产官网](https://recdock-plaud-web.vercel.app/)与 GitHub 候选下载入口已发布，并通过 Edge InPrivate 匿名访问检查；受保护预览已完成内容校验，原 `audio-bridge` 保持不变。
 
 发布安装包后，核对 `build-result.json`、Release 附件、SHA-256 和系统范围，再更新下载区域；真实演示与干净机器验收结果应明确标注。

@@ -1,6 +1,6 @@
 # RecDock Mac 发布候选版验收记录
 
-日期：2026-11-12。当前版本：`1.0.0-rc.2`。本机核心流程通过，GitHub 附件和官网部署正在收口。
+日期：2026-11-12。当前版本：`1.0.0-rc.2`。本机核心流程通过，源码、GitHub 预发布附件及官网生产部署已发布。
 
 ## 交付边界
 
@@ -65,4 +65,14 @@ Mac App 不需要公网工作台、网页配对码或网站授权即可导入、
 
 ## 发布状态
 
-源码提交、GitHub 候选附件与 Vercel 官网页面正在收口。原 `audio-bridge` 项目保持不变；新官网继续使用独立 `recdock-plaud-web` 项目。
+- [GitHub 候选版本](https://github.com/audiobridge-ai/recdock/releases/tag/desktop-v1.0.0-rc.2)：公开、非草稿、Pre-release。
+- [安装 ZIP](https://github.com/audiobridge-ai/recdock/releases/download/desktop-v1.0.0-rc.2/RecDock-1.0.0-rc.2-macos-arm64.zip)：GitHub 服务端报告 486,472,978 字节，SHA-256 与本地最终包一致。另有校验文本和构建清单两个附件。匿名 HEAD 请求跟随重定向后为 HTTP 200，Content-Length 与本地大小一致。
+- [官网](https://recdock-plaud-web.vercel.app/)：生产部署 `dpl_2Rkx2p3ShYtypiTQtG18FWeuvj3U`，READY；源码 `cbbbe620cd472afb7092c36b4e9f1223e1a9f77d`。Edge InPrivate 已观察到无需登录即可访问，下载按钮指向已发布的具体版本附件。
+- 预览 `dpl_BSF1ADNDELKp9NbhX8zmqYMexX5U` 已经通过授权连接读取，HTML / CSS / JS 均为 HTTP 200，内容与部署源码逐字一致。最初预览继承旧根目录而失败，已修正为 `website` 的无依赖构建。
+- 最终 rc.2 包的测试稿也实际提交到 ChatGPT，观察到对应 Markdown 附件、用户提示词和回复。附件哈希前缀 `b804f360` 与本机导出匹配。
+- 原 `audio-bridge` 项目的配置更新时间和最新部署 ID 均与本轮开始时一致，没有更改访问保护设置。
+- 当前受限终端无法直连 Vercel 域名；匿名可访问性由 Edge InPrivate 验证，没有将已授权抓取当作匿名访问的证据。
+
+[公开发布清单](desktop-rc2-publication-2026-11-12.json)。本轮交付标准为用户确认的未公证候选包；保留限制不等同于稳定版或干净设备验收通过。
+
+已清理本轮生成的旧调试包与失败构建，仅保留最终 `desktop/dist/rc-3`。固定开发入口已指向该最终运行时，后续源码联调继续复用同一 Electron 可执行文件；原助手基线 ZIP 和用户资料均保留。

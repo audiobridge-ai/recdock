@@ -1,0 +1,47 @@
+{
+  "version": "1.0.0-rc.2",
+  "releaseUrl": "https://github.com/audiobridge-ai/recdock/releases/tag/desktop-v1.0.0-rc.2",
+  "tag": "desktop-v1.0.0-rc.2",
+  "draft": false,
+  "prerelease": true,
+  "assets": [
+    {
+      "name": "build-info.json",
+      "bytes": 589,
+      "sha256": "a5ea672eb6524027c038068a5f83e9c81c01694cadd4b5043cb0315f9a732508",
+      "url": "https://github.com/audiobridge-ai/recdock/releases/download/desktop-v1.0.0-rc.2/build-info.json"
+    },
+    {
+      "name": "RecDock-1.0.0-rc.2-macos-arm64.zip",
+      "bytes": 486472978,
+      "sha256": "e26a30580c539aaaca6324f855e88e99da437c06f12f478ca1fad0a336e43638",
+      "url": "https://github.com/audiobridge-ai/recdock/releases/download/desktop-v1.0.0-rc.2/RecDock-1.0.0-rc.2-macos-arm64.zip"
+    },
+    {
+      "name": "SHA256SUMS.txt",
+      "bytes": 101,
+      "sha256": "10c1a385b002d7990f7a7bbd09f04ba4906bddcb032524676cc193d748358063",
+      "url": "https://github.com/audiobridge-ai/recdock/releases/download/desktop-v1.0.0-rc.2/SHA256SUMS.txt"
+    }
+  ],
+  "site": {
+    "url": "https://recdock-plaud-web.vercel.app/",
+    "projectId": "prj_bGCPcFgyzpCDkFwQX6035FVIt6IQ",
+    "deploymentId": "dpl_2Rkx2p3ShYtypiTQtG18FWeuvj3U",
+    "target": "production",
+    "readyState": "READY",
+    "sourceCommit": "cbbbe620cd472afb7092c36b4e9f1223e1a9f77d",
+    "anonymousAccessVerified": true,
+    "anonymousVerification": "Edge InPrivate: product page, rc.2 marker and exact GitHub asset link observed without login"
+  },
+  "originalApplication": {
+    "projectId": "prj_JDYHk4XAdLLdDTw4pmFUW2OPmBwI",
+    "name": "audio-bridge",
+    "configurationAndLatestDeploymentUnchanged": true
+  },
+  "installerAnonymousDownload": {
+    "httpStatus": 200,
+    "contentLength": 486472978,
+    "githubServerDigestMatchesLocal": true
+  }
+}

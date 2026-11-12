@@ -1,8 +1,8 @@
 {
   "name": "recdock-desktop",
   "productName": "RecDock",
-  "version": "1.0.0-rc.2",
-  "buildNumber": "1.0.2",
+  "version": "1.0.0-rc.3",
+  "buildNumber": "1.0.3",
   "description": "Local recording workspace for Mac and Windows",
   "license": "MIT",
   "private": true,

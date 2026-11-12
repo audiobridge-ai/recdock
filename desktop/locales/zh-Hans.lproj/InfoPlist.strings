@@ -1,0 +1,3 @@
+"NSBluetoothAlwaysUsageDescription" = "连接你选择的 PLAUD 设备，读取状态并下载录音。";
+"NSBluetoothPeripheralUsageDescription" = "连接你选择的录音设备。";
+"NSLocalNetworkUsageDescription" = "访问这台电脑上的 RecDock 录音处理服务。";

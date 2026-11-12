@@ -1,3 +1,5 @@
+import { initializeLocale } from '../src/i18n/index.ts';
+initializeLocale('zh-CN');
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { cloudFailureAction, connectionChoice, connectionProgress, initialFlowState, parseBrowserDeviceBinding, reduceFlow, savedAudioFormat } from '../src/ui/flow.ts';

@@ -19,7 +19,7 @@ test('状态查询和无令牌运行不访问钥匙串；拒绝解密保留密�
     await tokens.save('hf_TestOnly123456'); const encrypted = await readFile(file);
     assert.equal((await stat(file)).mode & 0o777, 0o600);
     calls = 0; assert.equal(await tokens.saved(), true); assert.equal(calls, 0);
-    deny = true; await assert.rejects(tokens.read(), /已有模型仍可离线使用/);
+    deny = true; await assert.rejects(tokens.read(), /existing models still work offline/);
     assert.deepEqual(await readFile(file), encrypted);
     deny = false; assert.equal(await tokens.read(), 'hf_TestOnly123456');
     calls = 0; await tokens.remove(); assert.equal(await tokens.saved(), false); assert.equal(calls, 0);

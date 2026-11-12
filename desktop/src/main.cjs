@@ -1,4 +1,5 @@
 'use strict';
+const { t, setLocale, getLocale } = require('./i18n.cjs');
 const { app, BrowserWindow, ipcMain, Menu, Tray, nativeImage, dialog, shell, clipboard, safeStorage, session } = require('electron');
 const { join, resolve } = require('node:path');
 const { homedir } = require('node:os');
@@ -33,23 +34,23 @@ else {
     const code = /^[A-Z0-9_]{1,80}$/.test(error.code || '') ? error.code : 'APP_START_FAILED';
     await mkdir(join(support, 'desktop'), { recursive: true, mode: 0o700 }).catch(() => {});
     await writeFile(join(support, 'desktop/startup-status.json'), JSON.stringify({ time: new Date().toISOString(), code, stage: error.message === 'SERVICE_START_FAILED' ? 'service' : 'application', detail: String(error.message || '').slice(0, 300) }), { mode: 0o600 }).catch(() => {});
-    const message = code === 'LIBRARY_LOCKED' ? '旧版 RecDock 服务仍在使用录音库。请退出旧助手后重开；不要同时运行两个版本。' : code === 'EADDRINUSE' ? '本机处理端口被其他程序占用，请关闭旧的 RecDock 桌面版本后重试。' : ['SIGKILL', 'EPERM', 'EACCES'].includes(code) ? '内置处理进程被系统或保护软件阻止。请核对系统与公司保护提示后重试，录音资料已保留。' : '内置处理环境未能启动。请确认安装包完整，并查看资料目录中的启动诊断。';
+    const message = code === 'LIBRARY_LOCKED' ? t("旧版 RecDock 服务仍在使用录音库。请退出旧助手后重开；不要同时运行两个版本。") : code === 'EADDRINUSE' ? t("本机处理端口被其他程序占用，请关闭旧的 RecDock 桌面版本后重试。") : ['SIGKILL', 'EPERM', 'EACCES'].includes(code) ? t("内置处理进程被系统或保护软件阻止。请核对系统与公司保护提示后重试，录音资料已保留。") : t("内置处理环境未能启动。请确认安装包完整，并查看资料目录中的启动诊断。");
     await Promise.allSettled([runtime?.cancelSetup(), runtime?.stop(), broker?.close()]);
-    dialog.showErrorBox('RecDock 无法启动', message + '\n诊断代码：' + code); app.exit(1);
+    dialog.showErrorBox(t("RecDock 无法启动"), message + t("\n诊断代码：") + code); app.exit(1);
   });
 }
 function show() { if (!window) return; window.show(); window.focus(); }
 function ownFrame(event) { try { return event.sender === window?.webContents && event.senderFrame === window.webContents.mainFrame && new URL(event.senderFrame.url).origin === origin; } catch { return false; } }
-function handle(channel, callback) { ipcMain.handle(channel, async (event, value) => { if (!ownFrame(event)) throw Error('拒绝不受信任的页面。'); return callback(value); }); }
+function handle(channel, callback) { ipcMain.handle(channel, async (event, value) => { if (!ownFrame(event)) throw Error(t("拒绝不受信任的页面。")); return callback(value); }); }
 async function desktopInfo() {
   const disk = await statfs(support);
   let models = false;
   try { const lock = JSON.parse(await readFile(join(runtime.models, 'models.lock.json'), 'utf8')); models = ['asr', 'aligner', 'diarizer'].every(name => lock.models?.[name]?.revision); } catch {}
-  return { version, platform: process.platform, modelsDirectory: runtime.models, modelsPrepared: models, freeBytes: Number(disk.bavail) * Number(disk.bsize), setup: runtime.taskState, extensionConnected: broker.connected, extensionDirectory: join(support, 'desktop/extension'), loginAtStart: app.getLoginItemSettings().openAtLogin, tokenSaved: await modelTokens.saved(), distribution: '未公证 · 发布候选版' };
+  return { version, platform: process.platform, modelsDirectory: runtime.models, modelsPrepared: models, freeBytes: Number(disk.bavail) * Number(disk.bsize), setup: runtime.taskState, extensionConnected: broker.connected, extensionDirectory: join(support, 'desktop/extension'), loginAtStart: app.getLoginItemSettings().openAtLogin, tokenSaved: await modelTokens.saved(), distribution: t("未公证 · 发布候选版") };
 }
 async function start() {
   if (!resources) throw Error('RESOURCES_REQUIRED');
-  settings = await readSettings(support);
+  settings = await readSettings(support); setLocale(settings.uiLanguage);
   await mkdir(join(support, 'desktop'), { recursive: true, mode: 0o700 });
   runtime = new Runtime({ resources, support, models: settings.modelsDirectory || join(support, 'models'), token, ...(!app.isPackaged ? { workspace: resolve(__dirname, '../vendor/dev-workspace'), publicRoot: resolve(__dirname, '../../plaud-web/dist') } : {}) });
   const native = await registerNative({ support, resources, home: homedir(), appSource: __dirname, extensionSource });
@@ -67,18 +68,25 @@ async function start() {
   window.webContents.setWindowOpenHandler(({ url }) => { const target = externalUrl(url); if (target) void shell.openExternal(target); return { action: 'deny' }; });
   window.webContents.on('select-bluetooth-device', (event, devices, callback) => {
     event.preventDefault();
-    window.webContents.send('recdock:bluetooth-devices', devices.map(row => ({ id: row.deviceId, name: row.deviceName || '未命名设备' })));
+    window.webContents.send('recdock:bluetooth-devices', devices.map(row => ({ id: row.deviceId, name: row.deviceName || t("未命名设备") })));
     if (window.bluetoothSelection) return;
     const timeout = setTimeout(() => { window.bluetoothSelection = null; callback(''); window.webContents.send('recdock:bluetooth-devices', []); }, 60000);
     window.bluetoothSelection = id => { clearTimeout(timeout); window.bluetoothSelection = null; callback(id); };
   });
-  ses.setBluetoothPairingHandler((details, callback) => { void dialog.showMessageBox(window, { type: 'question', title: '蓝牙设备配对', message: `是否允许与 ${details.deviceId} 配对？`, detail: details.pin ? `请核对设备上的配对码：${details.pin}` : '请核对你选择的录音设备。', buttons: ['取消', '允许'], defaultId: 0, cancelId: 0 }).then(result => callback({ confirmed: result.response === 1, pin: details.pin })); });
+  ses.setBluetoothPairingHandler((details, callback) => { void dialog.showMessageBox(window, { type: 'question', title: t("蓝牙设备配对"), message: t("是否允许与 {0} 配对？", details.deviceId), detail: details.pin ? t("请核对设备上的配对码：{0}", details.pin) : t("请核对你选择的录音设备。"), buttons: [t("取消"), t("允许")], defaultId: 0, cancelId: 0 }).then(result => callback({ confirmed: result.response === 1, pin: details.pin })); });
+  handle('recdock:get-locale', () => getLocale());
+  handle('recdock:set-locale', async value => {
+    if (!['en', 'zh-CN'].includes(value)) throw Error('INVALID_UI_LANGUAGE');
+    const next = { ...settings, uiLanguage: value };
+    await privateJson(join(support, 'settings.json'), next); settings = next;
+    setLocale(value); refreshNativeUI(); return getLocale();
+  });
   handle('recdock:info', desktopInfo);
   handle('recdock:choose-models', async () => {
-    if (runtime.task) throw Error('请等待或取消当前准备任务。');
-    const { response } = await dialog.showMessageBox(window, { message: '切换模型目录会重启本地处理服务。', detail: '正在处理的任务会保留并在重启后恢复。', buttons: ['取消', '选择目录'], defaultId: 1, cancelId: 0 });
+    if (runtime.task) throw Error(t("请等待或取消当前准备任务。"));
+    const { response } = await dialog.showMessageBox(window, { message: t("切换模型目录会重启本地处理服务。"), detail: t("正在处理的任务会保留并在重启后恢复。"), buttons: [t("取消"), t("选择目录")], defaultId: 1, cancelId: 0 });
     if (!response) return desktopInfo();
-    const result = await dialog.showOpenDialog(window, { properties: ['openDirectory'], title: '选择含 models.lock.json 的 RecDock 模型目录' });
+    const result = await dialog.showOpenDialog(window, { properties: ['openDirectory'], title: t("选择含 models.lock.json 的 RecDock 模型目录") });
     if (result.canceled) return desktopInfo();
     const selected = result.filePaths[0];
     settings.modelsDirectory = selected; await privateJson(join(support, 'settings.json'), settings);
@@ -86,32 +94,37 @@ async function start() {
     window.webContents.reload(); return desktopInfo();
   });
   handle('recdock:setup', async value => {
-    if (!['download', 'verify', 'probe'].includes(value)) throw Error('不支持此准备任务。');
-    if (value === 'download' && (await desktopInfo()).freeBytes < 6 * 1024 ** 3) throw Error('可用磁盘空间不足 6 GiB，请先释放空间，或选择已有模型目录。');
+    if (!['download', 'verify', 'probe'].includes(value)) throw Error(t("不支持此准备任务。"));
+    if (value === 'download' && (await desktopInfo()).freeBytes < 6 * 1024 ** 3) throw Error(t("可用磁盘空间不足 6 GiB，请先释放空间，或选择已有模型目录。"));
     return runtime.prepare({ verify: value === 'verify', probe: value === 'probe', token: value === 'download' ? await modelTokens.read() : '' });
   });
   handle('recdock:cancel-setup', () => runtime.cancelSetup());
   handle('recdock:save-token', value => modelTokens.save(value));
   handle('recdock:remove-token', () => modelTokens.remove());
-  handle('recdock:reveal', async value => { const path = value === 'extension' ? join(support, 'desktop/extension') : value === 'models' ? runtime.models : support; const error = await shell.openPath(path); if (error) throw Error('暂时无法打开目录。'); });
+  handle('recdock:reveal', async value => { const path = value === 'extension' ? join(support, 'desktop/extension') : value === 'models' ? runtime.models : support; const error = await shell.openPath(path); if (error) throw Error(t("暂时无法打开目录。")); });
   handle('recdock:copy-extension-path', () => { clipboard.writeText(join(support, 'desktop/extension')); return true; });
-  handle('recdock:external', value => { const url = externalUrl(value); if (!url) throw Error('链接不受支持。'); return shell.openExternal(url); });
-  handle('recdock:login', value => { if (typeof value !== 'boolean') throw Error('设置不正确。'); app.setLoginItemSettings({ openAtLogin: value }); return app.getLoginItemSettings().openAtLogin; });
-  handle('recdock:chatgpt', value => { if (!value || typeof value !== 'object') throw Error('请求不正确。'); return broker.request(value.action, value.payload); });
-  handle('recdock:bluetooth-select', value => { if (typeof value !== 'string' || value.length > 200) throw Error('设备不正确。'); window.bluetoothSelection?.(value); return true; });
+  handle('recdock:external', value => { const url = externalUrl(value); if (!url) throw Error(t("链接不受支持。")); return shell.openExternal(url); });
+  handle('recdock:login', value => { if (typeof value !== 'boolean') throw Error(t("设置不正确。")); app.setLoginItemSettings({ openAtLogin: value }); return app.getLoginItemSettings().openAtLogin; });
+  handle('recdock:chatgpt', value => { if (!value || typeof value !== 'object') throw Error(t("请求不正确。")); return broker.request(value.action, value.payload); });
+  handle('recdock:bluetooth-select', value => { if (typeof value !== 'string' || value.length > 200) throw Error(t("设备不正确。")); window.bluetoothSelection?.(value); return true; });
   runtime.on('setup', state => {
     if (state.report) void privateJson(join(support, 'desktop/environment-status.json'), state.report).catch(() => {});
     if (!window.isDestroyed()) window.webContents.send('recdock:setup-state', state);
   });
-  runtime.on('service-exited', () => { if (!closing && !runtime.restarting) dialog.showErrorBox('本地处理服务已停止', '请退出并重新打开 RecDock。录音与任务记录会保留。'); });
-  const menuTemplate = [ { label: 'RecDock', submenu: [{ label: '关于 RecDock', role: 'about' }, { label: '打开工作台', click: show }, { type: 'separator' }, { role: 'hide' }, { role: 'hideOthers' }, { type: 'separator' }, { role: 'quit', label: '退出 RecDock' }] }, { label: '文件', submenu: [{ role: 'close', label: '关闭窗口' }] }, { role: 'editMenu', label: '编辑' }, { role: 'viewMenu', label: '显示' }, { role: 'windowMenu', label: '窗口' }, { label: '帮助', submenu: [{ label: '项目与安装帮助', click: () => shell.openExternal('https://github.com/audiobridge-ai/recdock') }, { label: '检查新版本', click: () => shell.openExternal('https://github.com/audiobridge-ai/recdock/releases') }] } ];
-  Menu.setApplicationMenu(Menu.buildFromTemplate(menuTemplate));
+  runtime.on('service-exited', () => { if (!closing && !runtime.restarting) dialog.showErrorBox(t("本地处理服务已停止"), t("请退出并重新打开 RecDock。录音与任务记录会保留。")); });
   const icon = nativeImage.createFromPath(join(branding, 'Tray.png')); icon.setTemplateImage(true);
-  tray = new Tray(icon); tray.setToolTip('RecDock · 本地录音工作台'); tray.setContextMenu(Menu.buildFromTemplate([{ label: '打开 RecDock', click: show }, { label: '任务在后台继续；退出后可恢复', enabled: false }, { type: 'separator' }, { label: '退出 RecDock', click: () => app.quit() }])); tray.on('click', show);
-  app.setAboutPanelOptions({ applicationName: 'RecDock', applicationVersion: version, copyright: '© 2026 audiobridge-ai · MIT', credits: '本地优先的开源录音工作台。模型：Qwen / mlx-community / pyannote。当前版本未进行 Apple 公证。' });
+  tray = new Tray(icon); tray.on('click', show);
+  refreshNativeUI();
   if (!app.isPackaged) app.dock?.setIcon(join(branding, 'RecDock.png'));
   await window.loadURL(origin); show();
   app.on('activate', show);
+}
+function refreshNativeUI() {
+  const menuTemplate = [ { label: 'RecDock', submenu: [{ label: t("关于 RecDock"), role: 'about' }, { label: t("打开工作台"), click: show }, { type: 'separator' }, { role: 'hide', label: t('隐藏 RecDock') }, { role: 'hideOthers', label: t('隐藏其他应用') }, { role: 'unhide', label: t('全部显示') }, { type: 'separator' }, { role: 'quit', label: t("退出 RecDock") }] }, { label: t("文件"), submenu: [{ role: 'close', label: t("关闭窗口") }] }, { label: t('编辑'), submenu: [{ role: 'undo', label: t('撤销') }, { role: 'redo', label: t('重做') }, { type: 'separator' }, { role: 'cut', label: t('剪切') }, { role: 'copy', label: t('复制') }, { role: 'paste', label: t('粘贴') }, { role: 'selectAll', label: t('全选') }] }, { label: t('显示'), submenu: [{ role: 'reload', label: t('重新载入') }, { role: 'resetZoom', label: t('实际大小') }, { role: 'zoomIn', label: t('放大') }, { role: 'zoomOut', label: t('缩小') }, { role: 'togglefullscreen', label: t('切换全屏') }] }, { label: t('窗口'), submenu: [{ role: 'minimize', label: t('最小化') }, { role: 'zoom', label: t('缩放') }, { role: 'front', label: t('前置全部窗口') }] }, { label: t("帮助"), submenu: [{ label: t("项目与安装帮助"), click: () => shell.openExternal('https://github.com/audiobridge-ai/recdock') }, { label: t("检查新版本"), click: () => shell.openExternal('https://github.com/audiobridge-ai/recdock/releases') }] } ];
+  Menu.setApplicationMenu(Menu.buildFromTemplate(menuTemplate));
+  tray.setToolTip(t("RecDock · 本地录音工作台")); tray.setContextMenu(Menu.buildFromTemplate([{ label: t("打开 RecDock"), click: show }, { label: t("任务在后台继续；退出后可恢复"), enabled: false }, { type: 'separator' }, { label: t("退出 RecDock"), click: () => app.quit() }]));
+
+  app.setAboutPanelOptions({ applicationName: 'RecDock', applicationVersion: version, copyright: '© 2026 audiobridge-ai · MIT', credits: t("本地优先的开源录音工作台。模型：Qwen / mlx-community / pyannote。当前版本未进行 Apple 公证。") });
 }
 app.on('before-quit', event => {
   if (shutdown) return;

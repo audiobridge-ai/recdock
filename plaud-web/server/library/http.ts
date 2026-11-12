@@ -130,7 +130,8 @@ export function createLibraryHandler(service: LibraryService) {
         if (parts[2] === 'exports' && parts.length === 3 && req.method === 'POST') {
           const data = await body(req); if (typeof data.revisionId !== 'string') throw new LibraryError('REVISION_REQUIRED', '请明确选择要导出的稿件版本。');
           const { transcript, state } = await service.store.transcript(scope, recordingId, validId(data.revisionId));
-          const exported = exportTranscript(recording.title, transcript, state.revisionId === data.revisionId ? state.reviewedIds : [], String(data.format));
+          if (data.locale !== undefined && data.locale !== 'en' && data.locale !== 'zh-CN') throw new LibraryError('UI_LANGUAGE_INVALID', '界面语言设置不正确。');
+          const exported = exportTranscript(recording.title, transcript, state.revisionId === data.revisionId ? state.reviewedIds : [], String(data.format), data.locale === 'en' ? 'en' : 'zh-CN');
           const sha256 = createHash('sha256').update(exported.content).digest('hex'), exportId = `exp_${sha256.slice(0, 32)}`, directory = join(service.store.recordingDir(scope, recordingId), 'exports'); await secureDirectory(directory);
           const filename = `${recording.title.slice(0, 80).replace(/[\\/\u0000-\u001f]/g, '_')}-${recordingId.slice(-8)}-${data.revisionId.slice(-8)}.${exported.extension}`;
           const temporary = join(directory, id('tmp')); await writeFile(temporary, exported.content, { flag: 'wx', mode: 0o600 }); await rename(temporary, join(directory, exportId));

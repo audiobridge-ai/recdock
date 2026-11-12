@@ -1,3 +1,4 @@
+import { t } from '../i18n/index.ts';
 import { DEFAULT_CHATGPT_PROMPT } from './types.ts';
 import type { BridgeInfo, BridgeTask, ForwardPacket } from './types.ts';
 import type {} from '../desktop/api.ts';
@@ -27,5 +28,5 @@ export class ChatGPTBridge {
   status(id: string) { return this.request<BridgeTask | null>('status', { id }); }
   open(conversationUrl: string) { return this.request('open', { conversationUrl }); }
 }
-export function chatgptPrompt() { try { return window.localStorage.getItem('recdock.chatgptPrompt') || DEFAULT_CHATGPT_PROMPT; } catch { return DEFAULT_CHATGPT_PROMPT; } }
+export function chatgptPrompt() { try { return window.localStorage.getItem('recdock.chatgptPrompt') || t(DEFAULT_CHATGPT_PROMPT); } catch { return t(DEFAULT_CHATGPT_PROMPT); } }
 export function saveChatgptPrompt(value: string) { const text = value.trim(); if (!text || text.length > 6000) throw new Error('提示词需要 1–6000 个字符。'); try { window.localStorage.setItem('recdock.chatgptPrompt', text); } catch { throw new Error('浏览器未允许保存设置，请检查本机存储。'); } }

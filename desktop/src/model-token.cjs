@@ -1,4 +1,5 @@
 'use strict';
+const { t } = require('./i18n.cjs');
 const { constants } = require('node:fs');
 const { lstat, open, rename, unlink } = require('node:fs/promises');
 const { randomBytes } = require('node:crypto');
@@ -18,15 +19,15 @@ class ModelToken {
       if (!this.storage.isEncryptionAvailable()) throw Error('STORAGE_UNAVAILABLE');
       return this.storage.decryptString(encrypted);
     } catch {
-      throw Error('无法读取已保存的模型下载令牌。可以重新保存授权；已有模型仍可离线使用。');
+      throw Error(t("无法读取已保存的模型下载令牌。可以重新保存授权；已有模型仍可离线使用。"));
     } finally { await handle?.close(); }
   }
   async save(value) {
-    if (typeof value !== 'string' || !/^hf_[A-Za-z0-9]{10,200}$/.test(value.trim())) throw Error('请输入有效的 Hugging Face 访问令牌。');
-    if (!this.storage.isEncryptionAvailable()) throw Error('系统安全存储暂不可用，请稍后重试。');
+    if (typeof value !== 'string' || !/^hf_[A-Za-z0-9]{10,200}$/.test(value.trim())) throw Error(t("请输入有效的 Hugging Face 访问令牌。"));
+    if (!this.storage.isEncryptionAvailable()) throw Error(t("系统安全存储暂不可用，请稍后重试。"));
     let encrypted;
     try { encrypted = this.storage.encryptString(value.trim()); }
-    catch { throw Error('未能加密保存下载授权。已有模型仍可离线使用。'); }
+    catch { throw Error(t("未能加密保存下载授权。已有模型仍可离线使用。")); }
     const temporary = this.file + '.' + randomBytes(8).toString('hex') + '.tmp';
     let handle;
     try {

@@ -1,11 +1,11 @@
-/** Presentation only; actions and state remain in LibraryWorkspace. */
+import { html } from '../i18n/index.ts';
 export const recordingIcon = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 10v4m4-8v12m4-15v18m4-14v10m4-7v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
 const chevron = '<svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m5 6 3 3 3-3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 const person = '<svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="10" cy="6.7" r="3" stroke="currentColor" stroke-width="1.3"/><path d="M4 17v-1a6 6 0 0 1 12 0v1" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>';
 const settingsIcon = '<svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m8 2-.5 2-1.7 1-2-.5-2 3.5 1.5 1.5v2L1.8 13l2 3.5 2-.5 1.7 1 .5 2h4l.5-2 1.7-1 2 .5 2-3.5-1.5-1.5v-2l1.5-1.5-2-3.5-2 .5-1.7-1-.5-2Z" transform="translate(1 .2) scale(.9)" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><circle cx="10" cy="10" r="3" stroke="currentColor" stroke-width="1.3"/></svg>';
 const filterIcon = '<svg viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M3 5h12M5 9h8m-6 4h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>';
 
-export const workspaceMarkup = `
+export const workspaceMarkup = () => html`
   <header class="library-appbar">
     <div class="library-header-left">
       <div class="library-brand" aria-label="RecDock 录音工作台"><img src="/recdock-mark.svg" width="32" height="32" alt=""><strong>RecDock</strong></div>
@@ -58,7 +58,7 @@ export const workspaceMarkup = `
           <div class="library-pagination"><button data-action="prev">上一页</button><span data-view="page"></span><button data-action="next">下一页</button></div>
           <p class="library-candidate-note">自动转写候选稿，文字、时间与讲话人需回听核对。修改保存到本机，并保留原始机器稿与历史版本。</p>
         </div>
-        <div class="library-player"><div data-view="playtime"></div><audio controls preload="metadata"></audio><div><button data-action="back">−5 秒</button><button data-action="forward">＋5 秒</button><label>速度<select data-field="speed"><option value="0.75">0.75×</option><option value="1" selected>1×</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="2">2×</option></select></label></div></div>
+        <div class="library-player"><audio preload="metadata"></audio><div class="library-media-controls"><button data-action="play">播放</button><output data-view="playtime">00:00:00 / 00:00:00</output><input data-field="seek" type="range" min="0" max="0" step="0.1" value="0" aria-label="音频位置"><button data-action="mute" aria-pressed="false">静音</button><input data-field="volume" type="range" min="0" max="1" step="0.01" value="1" aria-label="音量"></div><div><button data-action="back">−5 秒</button><button data-action="forward">＋5 秒</button><label>速度<select data-field="speed"><option value="0.75">0.75×</option><option value="1" selected>1×</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="2">2×</option></select></label></div></div>
       </div>
     </section>
   </div>`;

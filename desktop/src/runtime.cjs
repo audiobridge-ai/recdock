@@ -1,4 +1,5 @@
 'use strict';
+const { t } = require('./i18n.cjs');
 const { spawn } = require('node:child_process');
 const { join } = require('node:path');
 const { EventEmitter } = require('node:events');
@@ -44,15 +45,15 @@ class Runtime extends EventEmitter {
     await new Promise(resolve => { const timer = setTimeout(() => child.kill('SIGKILL'), 15000); child.once('exit', () => { clearTimeout(timer); this.stopping = false; resolve(); }); child.kill('SIGTERM'); });
   }
   prepare({ verify = false, probe = false, token = '' } = {}) {
-    if (this.task) throw Error('已有模型或环境检查任务正在运行。');
+    if (this.task) throw Error(t("已有模型或环境检查任务正在运行。"));
     const args = ['-m', 'recdock_audio.desktop', '-m', probe ? 'recdock_audio.preflight' : 'recdock_audio.models', ...(probe ? ['environment', '--workspace', this.workspace, '--accelerators'] : ['--root', this.models, ...(verify ? ['--verify'] : [])])];
     const child = spawn(join(this.resources, 'runtime/python/bin/python3.11'), args, { cwd: this.workspace, env: { ...this.environment(), ...(token ? { HF_TOKEN: token } : {}) }, stdio: ['ignore', 'pipe', 'pipe'] });
-    this.task = child; this.taskState = { running: true, kind: probe ? 'probe' : verify ? 'verify' : 'download', message: probe ? '正在检查处理环境…' : verify ? '正在完整校验模型…' : '正在准备模型…' };
+    this.task = child; this.taskState = { running: true, kind: probe ? 'probe' : verify ? 'verify' : 'download', message: probe ? t("正在检查处理环境…") : verify ? t("正在完整校验模型…") : t("正在准备模型…") };
     const decoder = new StringDecoder('utf8'); let output = '', pending = '', finished = false;
     child.stdout.on('data', bytes => {
       const text = decoder.write(bytes); if (output.length < 2 * 1024 * 1024) output += text; pending += text;
       const lines = pending.split('\n'); pending = lines.pop();
-      for (const line of lines) { try { const row = JSON.parse(line); if (row.phase && row.model) { const names = { asr: '转写模型', aligner: '时间对齐模型', diarizer: '说话人模型' }; const phases = { checking: '检查中', downloading: '下载中', verifying: '校验中', retrying: '重试中', ready: '已就绪', failed: '未完成' }; this.taskState.message = `${names[row.model] || '模型'} · ${phases[row.phase] || '处理中'}`; this.taskState.model = row.model; this.taskState.phase = row.phase; this.emit('setup', this.taskState); } } catch {} }
+      for (const line of lines) { try { const row = JSON.parse(line); if (row.phase && row.model) { const names = { asr: t("转写模型"), aligner: t("时间对齐模型"), diarizer: t("说话人模型") }; const phases = { checking: t("检查中"), downloading: t("下载中"), verifying: t("校验中"), retrying: t("重试中"), ready: t("已就绪"), failed: t("未完成") }; this.taskState.message = `${names[row.model] || t("模型")} · ${phases[row.phase] || t("处理中")}`; this.taskState.model = row.model; this.taskState.phase = row.phase; this.emit('setup', this.taskState); } } catch {} }
     });
     child.stderr.on('data', () => {});
     const finish = code => {
@@ -61,7 +62,7 @@ class Runtime extends EventEmitter {
       let report; if (probe && code === 0) { try { report = JSON.parse(output); } catch {} }
       const blockers = probe && report ? report.blockers || [] : [];
       const ok = code === 0 && (!probe || !!report) && blockers.length === 0;
-      this.taskState = { ...this.taskState, running: false, ok, message: ok ? (probe ? '环境检查完成，处理工具与加速环境可用。' : '模型准备与校验完成。') : blockers.length ? '环境仍有问题：' + blockers.join('、') : code === 130 || this.taskState.cancelled ? '已取消；已下载部分保留，下次可继续。' : '未完成。请检查网络、模型许可和磁盘空间后重试。', ...(report ? { report } : {}) };
+      this.taskState = { ...this.taskState, running: false, ok, message: ok ? (probe ? t("环境检查完成，处理工具与加速环境可用。") : t("模型准备与校验完成。")) : blockers.length ? t("环境仍有问题：") + blockers.join('、') : code === 130 || this.taskState.cancelled ? t("已取消；已下载部分保留，下次可继续。") : t("未完成。请检查网络、模型许可和磁盘空间后重试。"), ...(report ? { report } : {}) };
       this.emit('setup', this.taskState);
     };
     child.once('error', () => finish(-1)); child.once('exit', code => finish(code));

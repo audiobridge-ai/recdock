@@ -1,6 +1,12 @@
 # RecDock 桌面工作台
 
-独立 Mac 窗口内完成录音导入、处理、回听、校对和导出。当前版本 `1.0.0-rc.2` 为未公证候选版，本机核心流程已通过；干净 Mac 首次安装和桌面设备真机回归仍待补齐。模型继续使用既有固定修订，不包含在 App 安装包中。
+独立 Mac 窗口内完成录音导入、处理、回听、校对和导出。当前版本 `1.0.0-rc.3` 为未公证候选版，本机核心流程已通过；干净 Mac 首次安装和桌面设备真机回归仍待补齐。模型继续使用既有固定修订，不包含在 App 安装包中。
+
+## 界面语言 / Interface language
+
+默认使用 English。点击工作台右上角 **中文 / English** 切换；Mac App、官网与扩展弹窗分别记住选择。App 的语言设置同时更新原生菜单。切换会重新载入工作台，后台处理继续；未保存的正文、标题或讲话人修改会先提示，导入、保存和设备传输期间暂缓切换。
+
+English is the default. Use **中文 / English** at the top right to switch. The desktop app, website, and extension popup each remember the choice. Recording content and custom names are preserved. Interface language and transcription language are separate settings.
 
 ## 当前支持范围
 

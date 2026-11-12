@@ -212,7 +212,9 @@ def main():
     plist_path = app / 'Contents/Info.plist'
     plist = plistlib.loads(plist_path.read_bytes())
     plist.update(CFBundleExecutable='RecDock', CFBundleName='RecDock', CFBundleDisplayName='RecDock', CFBundleIdentifier='ai.recdock.desktop', CFBundleShortVersionString=package['version'].split('-')[0], CFBundleVersion=package['buildNumber'], LSMinimumSystemVersion=min_string,
-                 NSBluetoothAlwaysUsageDescription='连接你选择的 PLAUD 设备，读取状态并下载录音。', NSBluetoothPeripheralUsageDescription='连接你选择的录音设备。', NSLocalNetworkUsageDescription='访问这台电脑上的 RecDock 录音处理服务。', NSHighResolutionCapable=True)
+                 CFBundleDevelopmentRegion='en', CFBundleLocalizations=['en', 'zh-Hans'], NSBluetoothAlwaysUsageDescription='Connect to your selected PLAUD device to read status and download recordings.', NSBluetoothPeripheralUsageDescription='Connect to the recording device you select.', NSLocalNetworkUsageDescription='Access the RecDock recording processing service on this computer.', NSHighResolutionCapable=True)
+    for locale in (DESKTOP / 'locales').glob('*.lproj'):
+        copy(locale, resources / locale.name)
     plist.pop('ElectronTeamID', None)
     plist['CFBundleIconFile'] = 'RecDock.icns'
     plist_path.write_bytes(plistlib.dumps(plist))

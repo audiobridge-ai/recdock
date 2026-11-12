@@ -1,3 +1,4 @@
+import { t } from '../i18n/index.ts';
 export type FlowScreen = 'restore' | 'login' | 'devices' | 'connecting' | 'workspace';
 export type WorkspaceTab = 'overview' | 'recordings' | 'settings';
 export type ConnectionStep = 'choosing' | 'preparing' | 'gatt' | 'authenticating' | 'reading';
@@ -31,11 +32,11 @@ export type FlowEvent =
   | { type: 'logout' };
 
 export const CONNECTION_STEPS: readonly { step: ConnectionStep; label: string }[] = [
-  { step: 'choosing', label: '选择蓝牙设备' },
-  { step: 'preparing', label: '准备设备认证' },
-  { step: 'gatt', label: '建立蓝牙连接' },
-  { step: 'authenticating', label: '验证设备身份' },
-  { step: 'reading', label: '读取设备状态' },
+  { step: 'choosing', label: t("选择蓝牙设备") },
+  { step: 'preparing', label: t("准备设备认证") },
+  { step: 'gatt', label: t("建立蓝牙连接") },
+  { step: 'authenticating', label: t("验证设备身份") },
+  { step: 'reading', label: t("读取设备状态") },
 ];
 
 export function initialFlowState(): FlowState {

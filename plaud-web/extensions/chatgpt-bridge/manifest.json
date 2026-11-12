@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "RecDock · ChatGPT 转发",
-  "version": "0.2.0",
-  "description": "将用户选定的 RecDock 转写稿发送到同一个 ChatGPT 标签页。",
+  "name": "RecDock · ChatGPT",
+  "version": "0.2.1",
+  "description": "Send complete RecDock transcripts to one connected ChatGPT tab.",
   "permissions": [
     "storage",
     "scripting",
@@ -30,7 +30,7 @@
   ],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "RecDock · ChatGPT 转发"
+    "default_title": "RecDock · ChatGPT"
   },
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAypdVaGM1kDbrlM218q68bqN0hISUTZ2euCu/eobSChtFDhwPNW57kbCC9pxXVpAvACNAR2Pd2GPY2Eu6Jj7f60vro0wGb7WBr8S7uW44FhBvurYJxfAIwURhB8GPuMOIkhxG+CVZ2Y5Mfry3j5Uj28EgES2vZWeWZNICv2FyF3NttqkuU8ZuwMBnMiyEgn46s09N5B9osmjnJ7m7VEFrZVQeoreGmFOfh+//xu/mOSSfawcCqWKMzgwyGIbsEBQimGXrKaGQS+LDA4b0rYh8UWjJXX6SbFuhQ8HF+1sh9BBYDJSVrqZtIhpXxStDmUWFP9R45mUd+0Mglw/uzjJVgwIDAQAB"
 }

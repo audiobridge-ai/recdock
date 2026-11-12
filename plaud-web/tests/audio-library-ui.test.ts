@@ -1,3 +1,5 @@
+import { initializeLocale } from '../src/i18n/index.ts';
+initializeLocale('zh-CN');
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -40,7 +42,8 @@ test('未保存编辑禁用转发，保存后绑定新修订，历史版本发�
     assert.equal(f.query<HTMLButtonElement>('[data-action=chatgpt-send]').disabled, false);
   } finally { await f.close(); }
 });
-function setup(options: Partial<ConstructorParameters<typeof LibraryWorkspace>[0]> = {}, initialLanguage?: string) {
+function setup(options: Partial<ConstructorParameters<typeof LibraryWorkspace>[0]> = {}, initialLanguage?: string, uiLocale: 'en' | 'zh-CN' = 'zh-CN', copy: { title?: string; text?: string; speakerName?: string } = {}) {
+  initializeLocale(uiLocale);
   const dom = new JSDOM('<header class="topbar"><span class="local-badge"></span></header><main></main>', { url: 'http://localhost:5173/' });
   const keys = ['window', 'document', 'Option', 'location', 'history', 'confirm', 'fetch']; const previous = new Map(keys.map(k => [k, Reflect.get(globalThis, k)]));
   for (const key of ['window', 'document', 'Option', 'location', 'history']) Reflect.set(globalThis, key, key === 'window' ? dom.window : dom.window[key]);
@@ -51,10 +54,11 @@ function setup(options: Partial<ConstructorParameters<typeof LibraryWorkspace>[0
   const downloads: string[] = []; dom.window.HTMLAnchorElement.prototype.click = function(this: HTMLAnchorElement) { downloads.push(this.href); };
   let current = structuredClone(fixture), reviewedIds: string[] = [], conflict = false, accountEmpty = true, personalEmpty = false, accountAvailable = true, accountFailure = false, identity = 'scope_testaccount';
   let source: LibraryRecording['source'] = { kind: 'import', deviceId: null, sessionId: null }, accountTitle = '账号录音';
+  if (copy.text) current.segments[0].text = copy.text; if (copy.speakerName) current.speakers[0].displayName = copy.speakerName;
   const history = new Map([[current.revisionId, structuredClone(current)]]);
   const forwarded: ForwardPacket[] = [];
   const calls: { path: string; method: string; scope: string | null; data: Record<string, unknown> | undefined }[] = [];
-  const row = (scope = 'personal') => ({ recording: { schemaVersion: 1, id: current.recordingId, scopeId: scope === 'personal' ? 'scope_personal' : identity, title: scope === 'personal' ? '合成界面测试' : accountTitle, source: scope === 'personal' || source.kind === 'ble' ? source : { kind: 'ble', deviceId: 'test-device', sessionId: 42 }, sourceSha256: current.sourceSha256, durationMs: current.durationMs, createdAtMs: 1, state: 'stored', assets: [] },
+  const row = (scope = 'personal') => ({ recording: { schemaVersion: 1, id: current.recordingId, scopeId: scope === 'personal' ? 'scope_personal' : identity, title: scope === 'personal' ? copy.title || '合成界面测试' : accountTitle, source: scope === 'personal' || source.kind === 'ble' ? source : { kind: 'ble', deviceId: 'test-device', sessionId: 42 }, sourceSha256: current.sourceSha256, durationMs: current.durationMs, createdAtMs: 1, state: 'stored', assets: [] },
     job: { id: 'job_test', state: 'succeeded', stage: null, error: null }, runtime: null, revision: { revisionId: current.revisionId, machineRevisionId: fixture.revisionId, reviewedIds }, language: 'zh' });
   const json = (value: unknown, status = 200) => new Response(JSON.stringify(value), { status, headers: { 'Content-Type': 'application/json' } });
   Reflect.set(globalThis, 'fetch', async (input: string, options: RequestInit = {}) => {
@@ -96,7 +100,7 @@ function setup(options: Partial<ConstructorParameters<typeof LibraryWorkspace>[0
   const query = <T extends Element = HTMLElement>(value: string) => workspace.root.querySelector<T>(value)!;
   return { workspace, dom, query, calls, downloads, forwarded, set source(value: LibraryRecording['source']) { source = value; if (source.kind === 'ble') { personalEmpty = true; accountEmpty = false; } }, set accountAvailable(value: boolean) { accountAvailable = value; }, set accountFailure(value: boolean) { accountFailure = value; }, set identity(value: string) { identity = value; }, set accountTitle(value: string) { accountTitle = value; }, set conflict(value: boolean) { conflict = value; }, set accountEmpty(value: boolean) { accountEmpty = value; },
     async select() { await workspace.open(); query<HTMLButtonElement>('.library-record').click(); await until(() => !!query('.library-paragraph')); },
-    async close() { workspace.close(); dom.window.close(); for (const [key, value] of previous) Reflect.set(globalThis, key, value); } };
+    async close() { Reflect.set(globalThis, 'confirm', () => true); workspace.close(); dom.window.close(); for (const [key, value] of previous) Reflect.set(globalThis, key, value); } };
 }
 
 test('录音库界面保存正文后读取服务端版本，纯文本呈现输入，并按完整版本导出', async () => {
@@ -426,4 +430,47 @@ test('待下载设备录音使用相同日期标题，文件编号继续用于�
     f.query<HTMLButtonElement>('[data-action="download-only"]').click();
     assert.deepEqual(calls, [sessionId]);
   } finally { await f.close(); }
+});
+
+test('English UI keeps recording titles, transcripts, speaker names, and ASR language unchanged', async () => {
+  const f = setup({}, 'zh', 'en', { title: '设置', text: '录音 Settings — 原始文字', speakerName: '转写完成' });
+  try {
+    await f.select();
+    assert.equal(f.query('[data-view=list-title]').textContent, 'Recordings');
+    assert.equal(f.query('[data-action=export-current]').textContent, 'Export text');
+    assert.equal(f.query('[data-view=title]').textContent, '设置');
+    assert.equal(f.query('.library-text').textContent, '录音 Settings — 原始文字');
+    assert.equal(f.query<HTMLInputElement>('[data-view=speakers] input').value, '转写完成');
+    assert.equal(f.dom.window.localStorage.getItem('recdock.transcriptionLanguage'), 'zh');
+    f.query<HTMLButtonElement>('.library-edit').click();
+    const editor = f.query<HTMLTextAreaElement>('.library-editor textarea'); editor.value = '尚未保存的文字';
+    Reflect.set(globalThis, 'confirm', () => false);
+    const event = new f.dom.window.Event('recdock:locale-changing', { cancelable: true });
+    assert.equal(f.dom.window.dispatchEvent(event), false);
+    assert.equal(f.query<HTMLTextAreaElement>('.library-editor textarea').value, '尚未保存的文字');
+  } finally { await f.close(); initializeLocale('zh-CN'); }
+});
+
+test('Localized player keeps playback, seeking, mute, and volume available in both languages', async () => {
+  for (const language of ['en', 'zh-CN'] as const) {
+    const f = setup({}, 'zh', language);
+    try {
+      await f.select(); const audio = f.query<HTMLAudioElement>('audio'); let paused = true;
+      Object.defineProperty(audio, 'paused', { configurable: true, get: () => paused });
+      Object.defineProperty(audio, 'duration', { configurable: true, value: 8 });
+      audio.play = async () => { paused = false; audio.dispatchEvent(new f.dom.window.Event('play')); };
+      audio.pause = () => { paused = true; audio.dispatchEvent(new f.dom.window.Event('pause')); };
+      audio.dispatchEvent(new f.dom.window.Event('loadedmetadata'));
+      const play = f.query<HTMLButtonElement>('[data-action=play]');
+      assert.equal(play.textContent, language === 'en' ? 'Play' : '播放');
+      play.click(); await Promise.resolve(); assert.equal(play.textContent, language === 'en' ? 'Pause' : '暂停');
+      play.click(); assert.equal(paused, true);
+      const seek = f.query<HTMLInputElement>('[data-field=seek]'); seek.value = '3.2'; seek.dispatchEvent(new f.dom.window.Event('input'));
+      assert.equal(audio.currentTime, 3.2); assert.equal(seek.getAttribute('aria-valuetext'), '00:00:03 / 00:00:08');
+      const volume = f.query<HTMLInputElement>('[data-field=volume]'); volume.value = '0.25'; volume.dispatchEvent(new f.dom.window.Event('input')); assert.equal(audio.volume, 0.25);
+      f.query<HTMLButtonElement>('[data-action=mute]').click(); assert.equal(audio.muted, true);
+      assert.equal(f.query('[data-action=mute]').textContent, language === 'en' ? 'Unmute' : '取消静音');
+    } finally { await f.close(); }
+  }
+  initializeLocale('zh-CN');
 });

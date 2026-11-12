@@ -1,0 +1,6 @@
+{
+  "name": "recdock-website",
+  "version": "1.0.0-rc.2",
+  "private": true,
+  "scripts": { "build": "node build.mjs" }
+}

@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-11",
+  "scope": "local-test",
+  "artifact": {
+    "appPath": "companion-macos/dist/local-2026-11-11-i/RecDock.app",
+    "archivePath": "companion-macos/dist/local-2026-11-11-i/RecDock-0.2.0-macos-arm64.zip",
+    "archiveBytes": 361576171,
+    "archiveSha256": "13436292dfae4f385539064db1f475ba6f8a69909affc8c68474c68e71f24974",
+    "architecture": "arm64",
+    "minimumMacOS": "26.2",
+    "notarized": false,
+    "publicDistributionReady": false,
+    "privateRuntimeStateExcluded": true
+  },
+  "checks": {
+    "javascriptPassed": 355,
+    "javascriptFailed": 0,
+    "javascriptSkipped": 0,
+    "pythonPassed": 39,
+    "nativeCorePassed": true,
+    "typescriptBuildPassed": true,
+    "codeSignatureIntegrityPassedAfterRealProcessing": true
+  },
+  "actualFlow": {
+    "sourceDurationSeconds": 12,
+    "sourceSha256": "21d0985aff0c87fe4d92681d6ead82a98c2786e7ddbc9503cd4db691cc8c9532",
+    "jobId": "job_87fd8573a85b4c3b91c443365c6668c9",
+    "jobState": "succeeded",
+    "completedStages": [
+      "preparing",
+      "transcribing",
+      "aligning",
+      "diarizing",
+      "merging"
+    ],
+    "attempt": 2,
+    "resumed": true,
+    "downloadExists": true,
+    "downloadBytes": 848,
+    "downloadSha256": "6759052f06f59687d14bb4873a283eee199116ee1a2083442d0e0af579472557",
+    "correctedFirstParagraphPresent": true,
+    "secondParagraphPresent": true
+  },
+  "preview": {
+    "project": "recdock-plaud-web",
+    "deploymentId": "dpl_5Pkip2J4HLHkkDKf62dwkr7BGPoR",
+    "origin": "https://recdock-plaud-web-chentiansabers-projects.vercel.app",
+    "state": "READY",
+    "apiTarget": "staging"
+  },
+  "notVerified": [
+    "clean-machine-install",
+    "first-online-model-download-with-HF-authorization",
+    "login-after-OS-restart",
+    "developer-id-notarization",
+    "older-macOS-compatibility"
+  ]
+}

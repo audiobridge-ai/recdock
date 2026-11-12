@@ -1,5 +1,8 @@
 import './style.css';
 import './library/workspace.css';
+import './local/panel.css';
+import { localConnection } from './local/connection.ts';
+import { installCompanionPanel } from './local/panel.ts';
 import { PlaudController } from './app/controller.ts';
 import { detectDeviceProtocol } from './app/device-protocol.ts';
 import { emptyCredentials, importCredentials, validateCredentials } from './auth/credentials.ts';
@@ -21,6 +24,7 @@ import type { DevicePreference } from './ui/preferences.ts';
 import { LibraryWorkspace } from './library/workspace.ts';
 import type { DownloadOptions } from './library/workspace.ts';
 import { installChatGPTSettings } from './chatgpt/settings.ts';
+import { installDesktopUI } from './desktop/ui.ts';
 
 // 仅复制公开的导出脚本；令牌由用户在官方页面手动导出，不经过聊天或本地存储。
 const WEB_SESSION_EXPORT_SCRIPT = String.raw`(() => {
@@ -978,9 +982,18 @@ async function environment() {
   }
 }
 render(); void environment(); void prefetchAuthorizedDevices();
+installDesktopUI();
 // The workspace is immediately usable; account recovery never replaces the page.
 void libraryWorkspace.open();
 // Establish the local cookie before the independent, potentially slow cloud restore.
-void libraryWorkspace.initialize().catch(() => {}).finally(() => {
-  void restoreCloudSession().finally(() => libraryWorkspace.refreshIdentity());
-});
+if (!localConnection.remote) {
+  void libraryWorkspace.initialize().catch(() => {}).finally(() => {
+    void restoreCloudSession().finally(() => libraryWorkspace.refreshIdentity());
+  });
+} else {
+  installCompanionPanel(libraryWorkspace.root, async () => {
+    await libraryWorkspace.initialize();
+    await restoreCloudSession();
+    await libraryWorkspace.reconnectCompanion();
+  }, () => { window.location.reload(); });
+}

@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite';
 import { createApplication } from './server/application.ts';
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   server: {
     host: 'localhost', port: 5173, strictPort: true,
     watch: { ignored: ['**/.local-audio/**', '**/worker/.venv/**', '**/__pycache__/**', '**/.pytest_cache/**'] },
@@ -11,16 +11,18 @@ export default defineConfig({
   plugins: [{
     name: 'plaud-local-login',
     configureServer(server) {
+      if (mode === 'web') return;
       const app = createApplication(); server.middlewares.use(app.middleware);
       server.httpServer?.once('close', () => { void app.close(); });
       const stop = () => { void app.close().finally(() => process.exit(0)); };
       process.once('SIGTERM', stop); process.once('SIGINT', stop);
     },
     configurePreviewServer(server) {
+      if (mode === 'web') return;
       const app = createApplication(); server.middlewares.use(app.middleware);
       server.httpServer.once('close', () => { void app.close(); });
       const stop = () => { void app.close().finally(() => process.exit(0)); };
       process.once('SIGTERM', stop); process.once('SIGINT', stop);
     },
   }],
-});
+}));

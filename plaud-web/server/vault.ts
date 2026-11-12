@@ -179,6 +179,7 @@ class NativeFileLock {
   private directory: string;
   constructor(directory: string) { this.directory = directory; }
   private executable(): Promise<string> {
+    if (process.env.RECDOCK_FILELOCK_HELPER) return Promise.resolve(process.env.RECDOCK_FILELOCK_HELPER);
     if (!this.helper) this.helper = this.compile().catch(error => { this.helper = undefined; throw error; });
     return this.helper;
   }

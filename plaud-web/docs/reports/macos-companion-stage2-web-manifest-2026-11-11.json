@@ -1,0 +1,357 @@
+[
+  {
+    "file": "plaud-web/package.json",
+    "size": 1168,
+    "sha": "e4f66f4cde7e46fc77d37a85b47e27f8a3db0b91"
+  },
+  {
+    "file": "plaud-web/package-lock.json",
+    "size": 48925,
+    "sha": "dede42ac7aea9d89549bcc69d88a507c6dfd5b03"
+  },
+  {
+    "file": "plaud-web/index.html",
+    "size": 525,
+    "sha": "ad2104b65a973c086f07b9e3c422382ea8d3a95c"
+  },
+  {
+    "file": "plaud-web/tsconfig.json",
+    "size": 402,
+    "sha": "b5e3e96a20e643d67ab1ed632a388fcc53d62dd0"
+  },
+  {
+    "file": "plaud-web/vite.config.ts",
+    "size": 1307,
+    "sha": "d3db1a350abecf0746577a61f23a9199619df9af"
+  },
+  {
+    "file": "plaud-web/vercel.json",
+    "size": 893,
+    "sha": "eada52b79a381ce124c2d0ddd1a3dee0404dad53"
+  },
+  {
+    "file": "plaud-web/src/app/controller.ts",
+    "size": 25112,
+    "sha": "6a32cba00b32e80e14a69b022c2b22304d220e03"
+  },
+  {
+    "file": "plaud-web/src/app/device-protocol.ts",
+    "size": 3460,
+    "sha": "6e571de739cceb79e3a4c64ac02bdca406f9f85d"
+  },
+  {
+    "file": "plaud-web/src/app/file-transfer.ts",
+    "size": 5454,
+    "sha": "3f0a56a421aefd23654196cccfef97ffa7031a5c"
+  },
+  {
+    "file": "plaud-web/src/audio/ogg.ts",
+    "size": 8253,
+    "sha": "0d0e472ef971580a12905a22390bce95984d67bf"
+  },
+  {
+    "file": "plaud-web/src/audio/plaud.ts",
+    "size": 5244,
+    "sha": "7683715b79967e865a41d183b04826baec8fe513"
+  },
+  {
+    "file": "plaud-web/src/audio/recovery.ts",
+    "size": 2226,
+    "sha": "ebcdbbda41f7dad0abd91cc8abe1b68d390bf87a"
+  },
+  {
+    "file": "plaud-web/src/audio/wav.ts",
+    "size": 3729,
+    "sha": "480eb622d39647b4941233b8c99f9c4e64593e53"
+  },
+  {
+    "file": "plaud-web/src/auth/cloud.ts",
+    "size": 8599,
+    "sha": "db2c180343d4525f3b879d5d1e745e02628c2300"
+  },
+  {
+    "file": "plaud-web/src/auth/credentials.ts",
+    "size": 3461,
+    "sha": "07dc1057856bf7447d346381b21e378245b29c9c"
+  },
+  {
+    "file": "plaud-web/src/auth/handshake.ts",
+    "size": 9016,
+    "sha": "7b9a7ec67e363d72bb4fbc418561e5bfee50aa10"
+  },
+  {
+    "file": "plaud-web/src/auth/session.ts",
+    "size": 1681,
+    "sha": "5846157064900bfea3bd84c08a4dd58fee7193c3"
+  },
+  {
+    "file": "plaud-web/src/ble/discovery.ts",
+    "size": 2211,
+    "sha": "865a461139ae06a67330bc4d9166089a35cb05dc"
+  },
+  {
+    "file": "plaud-web/src/ble/inbox.ts",
+    "size": 1653,
+    "sha": "2761ed9f25a740fed63d603bfdb18d8e731994c6"
+  },
+  {
+    "file": "plaud-web/src/ble/transport.ts",
+    "size": 7130,
+    "sha": "0d289862e315548202f8e2756df52003884de2dc"
+  },
+  {
+    "file": "plaud-web/src/ble/uuids.ts",
+    "size": 250,
+    "sha": "e2aed07a2e2448b9a4859832a7b6ea46ef2e10a2"
+  },
+  {
+    "file": "plaud-web/src/chatgpt/bridge.ts",
+    "size": 2624,
+    "sha": "d87c9dab6fd40d89cf4a3e96f464d51f29b40760"
+  },
+  {
+    "file": "plaud-web/src/chatgpt/forwarder.ts",
+    "size": 6202,
+    "sha": "117b3dcb55973e0770c3c14465b9101f33d40ec7"
+  },
+  {
+    "file": "plaud-web/src/chatgpt/settings.ts",
+    "size": 3440,
+    "sha": "973bcd38124a544dce17d1bba40ae6e92d83661c"
+  },
+  {
+    "file": "plaud-web/src/chatgpt/types.ts",
+    "size": 958,
+    "sha": "b63b2ce923132028cc4022863f48cd4602fab52d"
+  },
+  {
+    "file": "plaud-web/src/library/client.ts",
+    "size": 5345,
+    "sha": "cc45f28ab7e428a7a52867b0cab2aa7045e0f078"
+  },
+  {
+    "file": "plaud-web/src/library/recording-title.ts",
+    "size": 1422,
+    "sha": "1bd79e783222a74bfa726a5c8e39332c84456955"
+  },
+  {
+    "file": "plaud-web/src/library/types.ts",
+    "size": 4991,
+    "sha": "fbbabb20ed15adc98e0005c4c2fed1cbe84e6759"
+  },
+  {
+    "file": "plaud-web/src/library/view.ts",
+    "size": 11441,
+    "sha": "d050cc80ce86cad8564026bc6fd2fa7ee7f27d72"
+  },
+  {
+    "file": "plaud-web/src/library/workspace.css",
+    "size": 28420,
+    "sha": "57d1ae771a1a7aa7b955536688c35b3f0a39a8a4"
+  },
+  {
+    "file": "plaud-web/src/library/workspace.ts",
+    "size": 54706,
+    "sha": "37cf1e3a831c18f458d1ee528fd246dbeea93cd4"
+  },
+  {
+    "file": "plaud-web/src/local/connection.ts",
+    "size": 8180,
+    "sha": "88eee4fc212e46c73a7c68b18062f80977b774c9"
+  },
+  {
+    "file": "plaud-web/src/local/panel.css",
+    "size": 1996,
+    "sha": "4277e0ea6e258faf6efec80c35e74c33a8dfcae6"
+  },
+  {
+    "file": "plaud-web/src/local/panel.ts",
+    "size": 6059,
+    "sha": "94f8af59f6adf016da411f73b02c8ec43a00ed48"
+  },
+  {
+    "file": "plaud-web/src/main.ts",
+    "size": 87809,
+    "sha": "93b18e6ad84a5bae92d66e2c08080be40aaaf218"
+  },
+  {
+    "file": "plaud-web/src/protocol/advertisement.ts",
+    "size": 2762,
+    "sha": "8aa9d10a8871b4f741fa674dab513b0f8c370ded"
+  },
+  {
+    "file": "plaud-web/src/protocol/bytes.ts",
+    "size": 1488,
+    "sha": "6d5f78d1b5a4ea59ccf6e2f5e339bc208016bb22"
+  },
+  {
+    "file": "plaud-web/src/protocol/files.ts",
+    "size": 4612,
+    "sha": "9542883f6bd8e5d5bf7dbad2318cd879e3e14560"
+  },
+  {
+    "file": "plaud-web/src/protocol/recording.ts",
+    "size": 6592,
+    "sha": "96769dfbd919da07aa108617aff22d0d902eece2"
+  },
+  {
+    "file": "plaud-web/src/protocol/status.ts",
+    "size": 2258,
+    "sha": "57b705a5966e9a5f153bc0a753431a6071db3f20"
+  },
+  {
+    "file": "plaud-web/src/style.css",
+    "size": 25247,
+    "sha": "3b57931e05c8cbd23c48a05dec175b00e0cb08e4"
+  },
+  {
+    "file": "plaud-web/src/ui/flow.ts",
+    "size": 8911,
+    "sha": "b9fa2c458792619c2c8e58204368b0f9d75a5f48"
+  },
+  {
+    "file": "plaud-web/src/ui/preferences.ts",
+    "size": 7961,
+    "sha": "6cc545328b39af9bb2013f5d4291ed0c38439a3c"
+  },
+  {
+    "file": "plaud-web/src/ui/recordings.ts",
+    "size": 5305,
+    "sha": "1bce038b922ad00cef1bf17b0b66587300a96045"
+  },
+  {
+    "file": "plaud-web/src/ui/workspace-overlay.ts",
+    "size": 1698,
+    "sha": "b1fba1447cb05b6fac2d318c95815c2746e40ac6"
+  },
+  {
+    "file": "plaud-web/server/application.ts",
+    "size": 1159,
+    "sha": "2e1262bbbe2a6c25076654d00263ef2309fb44b1"
+  },
+  {
+    "file": "plaud-web/server/cloud-client.ts",
+    "size": 30379,
+    "sha": "c20c5467ae2ffcd892006632ed787d8c9881307e"
+  },
+  {
+    "file": "plaud-web/server/companion/bridge.ts",
+    "size": 17600,
+    "sha": "95f63588c690ede48668ed4e2f27ed320488c993"
+  },
+  {
+    "file": "plaud-web/server/companion/main.ts",
+    "size": 2243,
+    "sha": "86ea5a354cf957711cb9d96327d7245503a31f43"
+  },
+  {
+    "file": "plaud-web/server/companion/trust.ts",
+    "size": 1716,
+    "sha": "21b755908566302f698768177f061f7796facf93"
+  },
+  {
+    "file": "plaud-web/server/device-discovery.ts",
+    "size": 9870,
+    "sha": "6b4d4e1dd3a534bddef4c568a23846107bc2ff3d"
+  },
+  {
+    "file": "plaud-web/server/http.ts",
+    "size": 24204,
+    "sha": "0d34e2cc24fc3002164d0bd0a78ca9a614706fb7"
+  },
+  {
+    "file": "plaud-web/server/library/chatgpt.ts",
+    "size": 6636,
+    "sha": "54eaee92109ffb505077b73d0e14c6ae4e969d0c"
+  },
+  {
+    "file": "plaud-web/server/library/common.ts",
+    "size": 4342,
+    "sha": "57b47e67e90e02ed26eef7aca319229b5749b41c"
+  },
+  {
+    "file": "plaud-web/server/library/http.ts",
+    "size": 17788,
+    "sha": "097bbeb5ab2be0ac07ee2cd4913faaf64e495b6f"
+  },
+  {
+    "file": "plaud-web/server/library/migration.ts",
+    "size": 2450,
+    "sha": "45501506c5ed2ccbce593ec3995eac083353ec01"
+  },
+  {
+    "file": "plaud-web/server/library/revisions.ts",
+    "size": 4868,
+    "sha": "ba84bf06ffca54f336f09a3bb9be4b8343860af3"
+  },
+  {
+    "file": "plaud-web/server/library/service.ts",
+    "size": 17930,
+    "sha": "9914c4b82fca2dc49cf05ea4b0f5283bdd572720"
+  },
+  {
+    "file": "plaud-web/server/library/store.ts",
+    "size": 20380,
+    "sha": "2999a43d35348d18822412e937296b0844c24b1d"
+  },
+  {
+    "file": "plaud-web/server/library/transcript-export.ts",
+    "size": 4010,
+    "sha": "a83383fde0c03949746afac747f5f9bf061030a8"
+  },
+  {
+    "file": "plaud-web/server/native/BroadcastScanner.plist",
+    "size": 743,
+    "sha": "95d0c0740436ff9cf3611c34463df735b0526666"
+  },
+  {
+    "file": "plaud-web/server/native/BroadcastScanner.swift",
+    "size": 4128,
+    "sha": "673c0a1631b84a577d55f5207968ba87f478fed0"
+  },
+  {
+    "file": "plaud-web/server/native/FileLock.swift",
+    "size": 1604,
+    "sha": "88fba0c3bba4d8c9defa11fcec5a290f472be92b"
+  },
+  {
+    "file": "plaud-web/server/session-memory.ts",
+    "size": 4203,
+    "sha": "1045dbb97fbb27726495f7e85183114a05213a72"
+  },
+  {
+    "file": "plaud-web/server/transcription/contracts.ts",
+    "size": 4684,
+    "sha": "8869b654b89e8a263c4c2b9eda3b54dae22e1d18"
+  },
+  {
+    "file": "plaud-web/server/vault.ts",
+    "size": 20466,
+    "sha": "2a1883be0e9b5f31d566f6ab7ac4afe22812483b"
+  },
+  {
+    "file": "plaud-web/contracts/audio-v1.schema.json",
+    "size": 37024,
+    "sha": "4631b0c39291a02f830539040daae7afd1932719"
+  },
+  {
+    "file": "plaud-web/contracts/fixtures/contract-cases.json",
+    "size": 15000,
+    "sha": "d6480c58477078a311e4f6ad7b485ce38c66668d"
+  },
+  {
+    "file": "plaud-web/contracts/fixtures/transcript-v1.json",
+    "size": 2607,
+    "sha": "2ea190085e7f5ec114c818e1a38d9401bedcbc30"
+  },
+  {
+    "file": "plaud-web/public/connection-guide.html",
+    "size": 4057,
+    "sha": "00fb8c22b6a6af2f746a1a52cd782e60e2d0c25c"
+  },
+  {
+    "file": "plaud-web/public/recdock-mark.svg",
+    "size": 246,
+    "sha": "f415de5eacefa73dfabea0773e3af8f9de92a3b8"
+  }
+]

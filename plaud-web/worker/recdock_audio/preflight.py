@@ -22,6 +22,17 @@ SAMPLES = {
 }
 
 
+def audio_tool(name: str) -> str:
+    if name not in {"ffmpeg", "ffprobe"}:
+        raise ValueError("Unsupported audio tool")
+    configured = os.environ.get("RECDOCK_" + name.upper())
+    if configured:
+        if not Path(configured).is_absolute():
+            raise ValueError("Audio tool path must be absolute")
+        return configured
+    return shutil.which(name) or name
+
+
 def sha256(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as source:
@@ -52,7 +63,7 @@ def environment(workspace: Path, accelerators: bool = False) -> dict:
             packages[name] = importlib.metadata.version(name)
         except importlib.metadata.PackageNotFoundError:
             packages[name] = None
-    tools = {name: shutil.which(name) for name in ("ffmpeg", "ffprobe", "uv", "node")}
+    tools = {name: audio_tool(name) if name in {"ffmpeg", "ffprobe"} else shutil.which(name) for name in ("ffmpeg", "ffprobe", "uv", "node")}
     disk = shutil.disk_usage(workspace)
     hf_home = Path(os.environ.get("HF_HOME", Path.home() / ".cache/huggingface"))
     credentials_available = bool(os.environ.get("HF_TOKEN") or os.environ.get("HUGGING_FACE_HUB_TOKEN")) or (hf_home / "token").is_file()
@@ -61,13 +72,23 @@ def environment(workspace: Path, accelerators: bool = False) -> dict:
         blockers.append("PYTHON_VERSION_UNSUPPORTED")
     if not tools["ffmpeg"] or not tools["ffprobe"]:
         blockers.append("FFMPEG_MISSING")
+    tool_checks = {}
+    for name in ("ffmpeg", "ffprobe"):
+        try:
+            proc = subprocess.run([tools[name], "-version"], capture_output=True, timeout=15)
+            tool_checks[name] = {"returncode": proc.returncode}
+            if proc.returncode:
+                blockers.append(name.upper() + "_UNAVAILABLE")
+        except (OSError, subprocess.TimeoutExpired):
+            tool_checks[name] = {"error": "TOOL_START_FAILED"}
+            blockers.append(name.upper() + "_UNAVAILABLE")
     for name in ("mlx-audio", "pyannote.audio", "jsonschema"):
         if packages[name] is None:
             blockers.append("PACKAGE_MISSING:" + name)
     output = {
         "schemaVersion": 1, "hardware": hardware(), "python": platform.python_version(),
         "packages": packages, "tools": tools, "freeDiskBytes": disk.free,
-        "hfCredentialAvailable": credentials_available, "blockers": blockers,
+        "hfCredentialAvailable": credentials_available, "blockers": blockers, "toolChecks": tool_checks,
     }
     if accelerators:
         output["accelerators"] = {}
@@ -91,14 +112,14 @@ def environment(workspace: Path, accelerators: bool = False) -> dict:
 def inspect_sample(path: Path, decode: bool = False) -> dict:
     start = time.monotonic()
     probe = subprocess.run([
-        "ffprobe", "-v", "error", "-show_entries",
+        audio_tool("ffprobe"), "-v", "error", "-show_entries",
         "stream=codec_name,sample_rate,channels:format=duration,size,format_name", "-of", "json", str(path),
     ], capture_output=True, text=True, timeout=60)
     if probe.returncode:
         raise RuntimeError("FFPROBE_FAILED:" + probe.stderr[-500:])
     output = {"sha256": sha256(path), "bytes": path.stat().st_size, "audio": json.loads(probe.stdout)}
     if decode:
-        decoded = subprocess.run(["ffmpeg", "-nostdin", "-v", "error", "-i", str(path), "-f", "null", "-"],
+        decoded = subprocess.run([audio_tool("ffmpeg"), "-nostdin", "-v", "error", "-i", str(path), "-f", "null", "-"],
                                  capture_output=True, text=True, timeout=1800)
         output["decode"] = {"returncode": decoded.returncode, "error": decoded.stderr[-1000:] or None}
     output["elapsedSeconds"] = round(time.monotonic() - start, 3)

@@ -16,7 +16,7 @@ import time
 import wave
 import warnings
 
-from .preflight import sha256
+from .preflight import audio_tool, sha256
 
 
 def write_json(path: Path, value: object) -> None:
@@ -31,7 +31,7 @@ def prepare(source: Path, output: Path, chunk_seconds: int) -> dict:
         raise ValueError("alignment chunks must be shorter than 300 seconds")
     output.mkdir(parents=True, exist_ok=True, mode=0o700)
     decoded = output / "decoded.wav"
-    subprocess.run(["ffmpeg", "-nostdin", "-v", "error", "-y", "-i", str(source), "-ar", "16000", "-ac", "1", "-c:a", "pcm_s16le", str(decoded)], check=True, timeout=1800)
+    subprocess.run([audio_tool("ffmpeg"), "-nostdin", "-v", "error", "-y", "-i", str(source), "-ar", "16000", "-ac", "1", "-c:a", "pcm_s16le", str(decoded)], check=True, timeout=1800)
     chunks = []
     with wave.open(str(decoded), "rb") as audio:
         total = audio.getnframes()

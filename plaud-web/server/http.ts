@@ -14,6 +14,8 @@ interface LocalSession {
   id: string; csrf: string; expires: number; generation: number;
   busy: boolean; auth?: CloudSession; remember: boolean; offline: boolean; restored: boolean; memory?: VaultAccount; detection?: AbortController;
 }
+/** Supplied only by the companion's verified, origin-bound authorization gate. */
+export interface RemoteSessionBinding { sessionId?: string }
 type Client = Pick<PlaudCloudClient, 'login' | 'importSession' | 'devices' | 'prepare' | 'restore'>;
 const ttl = 60 * 60 * 1000;
 const cookieName = 'plaud_local_session';
@@ -53,6 +55,7 @@ function allowLocalRequest(req: IncomingMessage) {
 }
 
 export function createCloudMiddleware(client: Client = new PlaudCloudClient(), now = Date.now, options: {
+  authorizeRemote?: (req: IncomingMessage) => RemoteSessionBinding | undefined;
   store?: PersistenceStore; detectDevice?: DeviceDetector;
   library?: (req: IncomingMessage, res: ServerResponse, context: LibraryContext) => Promise<void>;
   onAccountGranted?: (accountId: string) => Promise<void>; onAccountRevoked?: (accountId: string) => Promise<void>;
@@ -136,11 +139,12 @@ export function createCloudMiddleware(client: Client = new PlaudCloudClient(), n
     if (ids.length !== 1) return;
     return sessions.get(ids[0][1]);
   }
-  function fresh(res: ServerResponse, auth?: CloudSession) {
+  function fresh(res: ServerResponse, auth?: CloudSession, remote?: RemoteSessionBinding) {
     if (sessions.size >= 64) throw failure('SESSION_LIMIT', '本地会话过多，请稍后重试', 429);
     const s: LocalSession = { id: secret(), csrf: secret(), expires: now() + ttl, generation: 0, busy: false, auth, remember: true, offline: false, restored: !!auth };
     sessions.set(s.id, s);
-    res.setHeader('Set-Cookie', `${cookieName}=${s.id}; HttpOnly; SameSite=Strict; Path=/api; Max-Age=3600`);
+    if (remote) remote.sessionId = s.id;
+    else res.setHeader('Set-Cookie', `${cookieName}=${s.id}; HttpOnly; SameSite=Strict; Path=/api; Max-Age=3600`);
     return s;
   }
   function publicSession(s: LocalSession) {
@@ -161,10 +165,12 @@ export function createCloudMiddleware(client: Client = new PlaudCloudClient(), n
     let session: LocalSession | undefined;
     let acquired: LocalSession | undefined;
     try {
-      allowLocalRequest(req);
-      session = current(req);
+      const remote = options.authorizeRemote?.(req);
+      if (!remote) allowLocalRequest(req);
+      const local = current(req); // Also expires old sessions for remote callers.
+      session = remote ? sessions.get(remote.sessionId || '') : local;
       if (path === '/api/session' && req.method === 'GET') {
-        session ??= fresh(res);
+        session ??= fresh(res, undefined, remote);
         if (!session.auth && !session.restored) {
           session.restored = true;
           const epoch = restoreEpoch;
@@ -176,7 +182,7 @@ export function createCloudMiddleware(client: Client = new PlaudCloudClient(), n
         send(res, 200, publicSession(session)); return;
       }
       if (path.startsWith('/api/library/') && options.library) {
-        if (!session && path === '/api/library/context' && req.method === 'GET') session = fresh(res);
+        if (!session && path === '/api/library/context' && req.method === 'GET') session = fresh(res, undefined, remote);
         if (!session) throw failure('CSRF_REJECTED', '本地会话已变化，请刷新页面后重试', 403);
         if (!['GET', 'HEAD'].includes(req.method || '') && (typeof req.headers['x-csrf-token'] !== 'string' || !sameToken(req.headers['x-csrf-token'], session.csrf))) throw failure('CSRF_REJECTED', '本地会话已变化，请刷新页面后重试', 403);
         session.expires = now() + ttl;
@@ -206,7 +212,7 @@ export function createCloudMiddleware(client: Client = new PlaudCloudClient(), n
           }); persistence.hasSavedAccount = false;
         } catch { persistenceError(); }
         if (accountId) await options.onAccountRevoked?.(accountId);
-        const nextSession = fresh(res); nextSession.restored = true;
+        const nextSession = fresh(res, undefined, remote); nextSession.restored = true;
         send(res, 200, publicSession(nextSession)); return;
       }
       if (session.busy) throw failure('OPERATION_BUSY', '正在准备账号或设备，请等待当前操作完成', 409);
@@ -233,7 +239,7 @@ export function createCloudMiddleware(client: Client = new PlaudCloudClient(), n
         restoreEpoch++;
         await save(session, live, true); live();
         sessions.delete(session.id);
-        const authenticated = fresh(res, auth); authenticated.remember = session.remember; authenticated.memory = session.memory;
+        const authenticated = fresh(res, auth, remote); authenticated.remember = session.remember; authenticated.memory = session.memory;
         await options.onAccountGranted?.(auth.account.accountId);
         send(res, 200, publicSession(authenticated)); return;
       }
@@ -251,7 +257,7 @@ export function createCloudMiddleware(client: Client = new PlaudCloudClient(), n
         restoreEpoch++;
         await save(session, live, true); live();
         sessions.delete(session.id);
-        const authenticated = fresh(res, auth); authenticated.remember = session.remember; authenticated.memory = session.memory;
+        const authenticated = fresh(res, auth, remote); authenticated.remember = session.remember; authenticated.memory = session.memory;
         await options.onAccountGranted?.(auth.account.accountId);
         send(res, 200, publicSession(authenticated)); return;
       }

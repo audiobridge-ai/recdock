@@ -19,18 +19,26 @@ from .paragraphs import merge_recording
 from .preflight import sha256
 from .resume import prepared_matches, stage_matches
 
-PIPELINE_VERSION = "local-paragraph-v2-fixed120-bounded-speakers"
+PIPELINE_VERSION = "local-paragraph-v3-fixed120-waveform-intersection"
 STAGES = ["preparing", "transcribing", "aligning", "diarizing", "merging"]
 
 
 def bound_diarization(diarized: dict, duration_ms: int) -> tuple[dict, list[tuple[int, int]]]:
-    """Normalize at most 40 ms of endpoint overshoot; retain raw model artifacts."""
+    """Intersect model intervals with the physical waveform, retaining raw artifacts.
+
+    Segmentation frames can extend past the last sample (observed: 83 ms for
+    26.88 s of PCM). This is padding, not additional recorded speech. Keep every
+    intersecting interval in its original order and mark affected paragraphs
+    uncertain; never change the raw diarize.json or extend the audio duration.
+    """
+    if type(duration_ms) is not int or duration_ms <= 0:
+        raise ValueError("REVIEW_SPEAKER_TIME_OUTSIDE_SOURCE")
     result, adjusted = dict(diarized), []
     for key in ["turns", "exclusiveTurns"]:
         result[key] = []
         for turn in diarized[key]:
             start, end = turn["startMs"], turn["endMs"]
-            if type(start) is not int or type(end) is not int or start >= end or start < -40 or end > duration_ms + 40:
+            if type(start) is not int or type(end) is not int or start >= end:
                 raise ValueError("REVIEW_SPEAKER_TIME_OUTSIDE_SOURCE")
             bounded_start, bounded_end = max(0, min(duration_ms, start)), max(0, min(duration_ms, end))
             if (bounded_start, bounded_end) != (start, end):

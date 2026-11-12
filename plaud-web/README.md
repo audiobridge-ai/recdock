@@ -40,6 +40,8 @@ npm run dev
 
 Open **http://localhost:5173/** and keep the local server running.
 
+For the new **online workspace + local companion** development preview, see [connection and Vercel deployment](docs/online-companion.md). `npm run companion` starts a loopback-only service with origin-bound, one-time-code pairing. `npm run dev:web` / `npm run preview:web` serve only the frontend. A downloadable installer and automatic model preparation are planned separately.
+
 For local audio, open **Import** and choose **Import and transcribe** or **Import audio only** directly in the workspace. A PLAUD login and Bluetooth are not required. Model preparation and FFmpeg are required for processing; see the [development notes](docs/development.md).
 
 For PLAUD recordings:
@@ -96,7 +98,7 @@ npm run build
 npm run preview
 ```
 
-The current JavaScript suite passes **335 tests**, TypeScript checks and a production build on this Mac. The unchanged Python worker baseline previously passed **39 tests**. FFmpeg is required for the recording library and local processing, and also enables independent audio interoperability tests. See [development notes](docs/development.md) and [protocol notes](docs/protocol.md).
+The current JavaScript suite passes **347 tests**, TypeScript checks and a production build on this Mac. The unchanged Python worker baseline previously passed **39 tests**. FFmpeg is required for the recording library and local processing, and also enables independent audio interoperability tests. See [development notes](docs/development.md) and [protocol notes](docs/protocol.md).
 
 Both development and preview commands provide the loopback-only local API. The `dist/` directory contains only the frontend; hosting it alone does not provide login, native detection or the local-cache API. Keep the same `localhost` origin to preserve browser device permissions and mappings.
 

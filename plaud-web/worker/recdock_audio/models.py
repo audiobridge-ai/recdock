@@ -22,6 +22,11 @@ CANDIDATES = {
     "aligner": "mlx-community/Qwen3-ForcedAligner-0.6B-8bit",
     "diarizer": "pyannote/speaker-diarization-community-1",
 }
+PINNED_REVISIONS = {
+    "mlx-community/Qwen3-ASR-1.7B-8bit": "a8379a2e2f9e313c9292cdf1af4055ab56d50d55",
+    "mlx-community/Qwen3-ForcedAligner-0.6B-8bit": "0e1a68e91d815300c7c9754b2a7639378b23db15",
+    "pyannote/speaker-diarization-community-1": "3533c8cf8e369892e6b79ff1bf80f7b0286a54ee",
+}
 
 
 class ModelPreparationError(RuntimeError):
@@ -131,7 +136,7 @@ def prepare(root: Path, *, attempts: int = 3, names: list[str] | None = None) ->
             saved = lock["models"].get(name)
             selected = pending["models"].get(name)
             revision = saved["revision"] if saved and saved["repo"] == repo else (
-                selected["revision"] if selected and selected["repo"] == repo else cached_revision(destination)
+                selected["revision"] if selected and selected["repo"] == repo else cached_revision(destination) or PINNED_REVISIONS.get(repo)
             )
             if revision is None:
                 try:

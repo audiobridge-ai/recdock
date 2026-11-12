@@ -1,4 +1,5 @@
 import type { Credentials } from './credentials.ts';
+import { localConnection } from '../local/connection.ts';
 
 export interface CloudDevice {
   serialNumber: string;
@@ -77,7 +78,7 @@ export class CloudClient {
     if (signal?.aborted) abort.abort();
     const csrfGeneration = this.csrfGeneration;
     try {
-      const response = await fetch(`/api/${path}`, {
+      const response = await localConnection.request(`/api/${path}`, {
         method: body ? 'POST' : 'GET', credentials: 'same-origin', cache: 'no-store', signal: abort.signal,
         headers: body ? { 'Content-Type': 'application/json', 'X-CSRF-Token': this.csrfToken } : {},
         body: body ? JSON.stringify(body) : undefined,

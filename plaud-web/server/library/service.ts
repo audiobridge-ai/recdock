@@ -177,7 +177,7 @@ export class LibraryService {
     const { asset } = await this.store.asset(job.scopeId, job.recordingId);
     const child = spawn(this.python, ['-m', this.workerModule, '--recording-dir', directory, '--models', this.models, '--device', this.device, '--parent-pid', String(process.pid)], {
       cwd: this.workspace, detached: process.platform !== 'win32', stdio: ['pipe', 'pipe', 'pipe'],
-      env: { ...process.env, PYTHONPATH: join(this.workspace, 'worker'), HF_HOME: join(this.workspace, '.local-audio', 'huggingface'), MPLCONFIGDIR: join(this.workspace, '.local-audio', 'matplotlib'), HF_HUB_OFFLINE: '1', HF_HUB_DISABLE_TELEMETRY: '1', PYANNOTE_METRICS_ENABLED: '0' },
+      env: { ...process.env, PYTHONPATH: join(this.workspace, 'worker'), HF_HOME: process.env.HF_HOME || join(this.workspace, '.local-audio', 'huggingface'), MPLCONFIGDIR: process.env.MPLCONFIGDIR || join(this.workspace, '.local-audio', 'matplotlib'), HF_HUB_OFFLINE: '1', HF_HUB_DISABLE_TELEMETRY: '1', PYANNOTE_METRICS_ENABLED: '0' },
     });
     active.child = child;
     child.stdin.on('error', () => {}); child.stderr.resume();

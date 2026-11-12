@@ -1,9 +1,11 @@
 import { attachmentReady, attachmentWaitMessage, conversationUrl, messageFor, publicTask, selectTarget, submittedDraftFor, validatePacket, workspaceSender } from './shared.mjs';
 import { attachFile, beginNewChat, clearSubmittedDraft, inspectPage, submitMessage } from './page-adapter.mjs';
+import { installNativeClient } from './native-client.mjs';
 
 let queue = Promise.resolve();
 const serial = operation => { const next = queue.then(operation, operation); queue = next.catch(() => {}); return next; };
 let running;
+let nativeConnection;
 let homeWatch = 0;
 async function config() {
   const value = (await chrome.storage.local.get('config')).config;
@@ -162,9 +164,12 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
   const popup = sender.id === chrome.runtime.id && !sender.tab && sender.url === chrome.runtime.getURL('popup.html');
   if (!popup && (!workspaceSender(sender) || message?.source !== 'recdock-workspace')) return false;
   if (popup && !['info', 'bind'].includes(message?.action)) return false;
+  if (popup) nativeConnection?.reconnect();
   serial(() => handle(message.action, message.payload)).then(result => respond({ result }), error => respond({ error: error instanceof Error ? error.message : '扩展操作未完成。' }));
   return true;
 });
+
+nativeConnection = installNativeClient((action, payload) => serial(() => handle(action, payload)));
 
 // A user may open New chat after a completed send. Remove only our exact,
 // confirmed residual text on the bound homepage; never alter a new user draft.

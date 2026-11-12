@@ -5,9 +5,12 @@
 *.ipr
 *.iws
 node_modules/
+.npm-cache/
+vendor/
 dist/
 build/
 coverage/
+.vercel/
 __pycache__/
 *.pyc
 *.tsbuildinfo

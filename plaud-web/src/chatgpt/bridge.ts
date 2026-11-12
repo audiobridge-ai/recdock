@@ -1,10 +1,12 @@
 import { DEFAULT_CHATGPT_PROMPT } from './types.ts';
 import type { BridgeInfo, BridgeTask, ForwardPacket } from './types.ts';
+import type {} from '../desktop/api.ts';
 
 const CHANNEL = 'recdock-chatgpt-v1';
 export class ChatGPTBridgeTimeout extends Error { constructor(action: string) { super(action === 'info' ? 'ChatGPT 扩展暂未响应。若已安装，请刷新工作台后检查连接。' : '等待 ChatGPT 扩展回执超时，请检查已连接页面并核对发送状态；当前不能据此判断是否已经提交。'); } }
 export class ChatGPTBridge {
   private request<T>(action: string, payload?: unknown, timeout = 4000): Promise<T> {
+    if (window.recdockDesktop) return window.recdockDesktop.chatgpt({ action, payload }) as Promise<T>;
     return new Promise((resolve, reject) => {
       const targetWindow = window, origin = targetWindow.location.origin;
       const requestId = crypto.randomUUID();

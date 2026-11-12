@@ -84,6 +84,7 @@ export class NativeDeviceDiscovery {
   constructor(directory = defaultDirectory) { this.directory = directory; }
   async executable(): Promise<string> {
     if (process.platform !== 'darwin') throw fail('DEVICE_DISCOVERY_UNSUPPORTED', '当前系统尚未提供自动设备识别，请使用支持广播读取的浏览器。');
+    if (process.env.RECDOCK_BROADCAST_HELPER) return process.env.RECDOCK_BROADCAST_HELPER;
     this.preparing ??= this.compile().catch(error => { this.preparing = undefined; throw error; });
     return this.preparing;
   }

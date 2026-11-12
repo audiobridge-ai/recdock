@@ -35,14 +35,15 @@ async function mediaProbe(path: string): Promise<{ durationMs: number; mimeType:
 }
 export function subprocess(command: string, args: string[], timeout: number): Promise<string> {
   return new Promise((resolvePromise, reject) => {
-    const child = spawn(command, args, { stdio: ['ignore', 'pipe', 'pipe'] });
+    const executable = command === 'ffmpeg' ? process.env.RECDOCK_FFMPEG || command : command === 'ffprobe' ? process.env.RECDOCK_FFPROBE || command : command;
+    const child = spawn(executable, args, { stdio: ['ignore', 'pipe', 'pipe'] });
     let output = '', finished = false;
     const timer = setTimeout(() => { child.kill('SIGKILL'); done(new LibraryError('AUDIO_PROBE_TIMEOUT', '检查音频超时，原文件已保留。')); }, timeout);
     function done(error?: Error) { if (finished) return; finished = true; clearTimeout(timer); if (error) reject(error); else resolvePromise(output); }
     child.stdout.on('data', chunk => { output += String(chunk); if (output.length > 4 * 1024 * 1024) { child.kill(); done(new LibraryError('AUDIO_UNSUPPORTED', '音频元信息过大。')); } });
     child.stderr.resume();
     child.on('error', () => done(new LibraryError('FFMPEG_UNAVAILABLE', '本机 FFmpeg / FFprobe 不可用，请检查环境。', 503)));
-    child.on('close', code => done(code === 0 ? undefined : new LibraryError('AUDIO_UNSUPPORTED', '音频无法完整解码，已保留原文件，尚未排队转写。')));
+    child.on('close', (code, signal) => done(code === 0 ? undefined : signal ? new LibraryError('FFMPEG_UNAVAILABLE', `本机音频工具异常退出（${basename(command)} / ${signal}），请重新启动应用或检查安装包。原文件已保留。`, 503) : new LibraryError('AUDIO_UNSUPPORTED', '音频无法完整解码，已保留原文件，尚未排队转写。')));
   });
 }
 
@@ -122,12 +123,14 @@ export class LibraryStore {
       const duplicate = (await this.records(scope)).find(r => r.sourceSha256 === sourceSha256);
       if (duplicate) {
         if (duplicate.state === 'deleted') { duplicate.state = duplicate.durationMs ? 'stored' : duplicate.source.kind === 'ble' ? 'needs_recovery' : 'unsupported'; await atomicJson(join(this.recordingDir(scope, duplicate.id), 'recording.json'), duplicate); }
-        if (meta.playable && duplicate.state !== 'stored') {
+        if (duplicate.state !== 'stored') {
           try {
-            const media = await mediaProbe(playable), directory = this.recordingDir(scope, duplicate.id), playableId = id('asset');
-            const relativePath = `playable/audio${meta.playable.filename.match(/\.[a-zA-Z0-9]{1,8}$/)?.[0] || '.bin'}`;
-            await secureDirectory(join(directory, 'playable')); await copyFile(playable, join(directory, relativePath), constants.COPYFILE_EXCL); await chmod(join(directory, relativePath), 0o600);
-            duplicate.assets = [...duplicate.assets.filter(a => a.role !== 'playable'), { id: playableId, role: 'playable', relativePath, sha256: await fileSha256(playable), bytes: meta.playable.bytes, mimeType: media.mimeType }];
+            const media = await mediaProbe(meta.playable ? playable : original), directory = this.recordingDir(scope, duplicate.id);
+            if (meta.playable) {
+              const playableId = id('asset'), relativePath = `playable/audio-${playableId}${meta.playable.filename.match(/\.[a-zA-Z0-9]{1,8}$/)?.[0] || '.bin'}`;
+              await secureDirectory(join(directory, 'playable')); await copyFile(playable, join(directory, relativePath), constants.COPYFILE_EXCL); await chmod(join(directory, relativePath), 0o600);
+              duplicate.assets = [...duplicate.assets.filter(a => a.role !== 'playable'), { id: playableId, role: 'playable', relativePath, sha256: await fileSha256(playable), bytes: meta.playable.bytes, mimeType: media.mimeType }];
+            } else duplicate.assets = duplicate.assets.filter(a => a.role !== 'playable').map(a => ({ ...a, mimeType: media.mimeType }));
             duplicate.state = 'stored'; duplicate.durationMs = media.durationMs; assertAudioContract('Recording', duplicate); await atomicJson(join(directory, 'recording.json'), duplicate);
           } catch (error) { if (!(error instanceof LibraryError && error.code === 'AUDIO_UNSUPPORTED')) throw error; }
         }

@@ -1,0 +1,66 @@
+{
+  "version": "1.0.0-rc.2",
+  "date": "2026-11-12",
+  "status": "local-candidate-verified-publication-pending",
+  "hardware": {
+    "model": "MacBook Pro",
+    "chip": "Apple M3 Pro",
+    "memoryGB": 18,
+    "macOS": "26.5.2"
+  },
+  "tests": {
+    "web": 355,
+    "desktop": 8,
+    "python": 40,
+    "failed": 0
+  },
+  "pipeline": "local-paragraph-v3-fixed120-waveform-intersection",
+  "modelRevisions": {
+    "asr": "a8379a2e2f9e313c9292cdf1af4055ab56d50d55",
+    "aligner": "0e1a68e91d815300c7c9754b2a7639378b23db15",
+    "diarizer": "3533c8cf8e369892e6b79ff1bf80f7b0286a54ee"
+  },
+  "flows": {
+    "existingLibraryAndEditsRetained": true,
+    "startupWithoutKeychainAccess": true,
+    "audioToolsAndGpuProbe": true,
+    "realAsrAlignmentDiarization": true,
+    "timeLinkedPlayback": true,
+    "manualRevisionAndMachineVersionRetained": true,
+    "windowClosedBackgroundProgress": true,
+    "quitInterruptedAndSameJobResumed": true,
+    "chatgptRealAttachmentUserMessageConversationReceipt": true,
+    "sameSubmissionReopenedWithoutDuplicate": true,
+    "websiteDesktopAndNarrowWindow": true
+  },
+  "resume": {
+    "recordingId": "rec_5b33af704e86403f92978780dc04a8ad",
+    "jobId": "job_97ce49c61cbd470c80de98344b84af0e",
+    "attempt": 2,
+    "resumed": true,
+    "state": "succeeded",
+    "durationMs": 26880,
+    "segments": 4,
+    "rawSpeakerEndMs": 26963,
+    "boundedSpeakerEndMs": 26880,
+    "uncertainSegments": 1
+  },
+  "finalPackageRun": {
+    "recordingId": "rec_9ccecafe252f4ed7b54c5d9d1014dcdd",
+    "jobId": "job_2761f2bc2cdb47aa98ea16697ec2f628",
+    "state": "succeeded",
+    "durationMs": 8720,
+    "elapsedMsIncludingModelLoad": 42624,
+    "segments": 1,
+    "nativeMarkdownExportBytes": 724,
+    "nativeMarkdownExportSha256": "b804f3608953e5614c53a4b1bb1bd267ca0c1ab5092cea2a4166d94f181d9952"
+  },
+  "limits": [
+    "not-notarized",
+    "no-developer-id",
+    "fresh-mac-install-not-tested",
+    "desktop-plaud-hardware-regression-pending",
+    "windows-intel-and-older-macos-not-tested",
+    "dmg-not-created-in-current-sandbox"
+  ]
+}

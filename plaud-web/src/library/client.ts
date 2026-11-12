@@ -1,4 +1,5 @@
 import type { AudioJob, AudioTranscript, LibraryRecording, TranscriptRevision } from './types.ts';
+import { localConnection } from '../local/connection.ts';
 
 export interface LibraryEnvironment { available: boolean; missing: string[]; maxBytes: number; quality: string; storageRoot?: string }
 export interface LibraryContext { csrfToken: string; accountAvailable: boolean; identity: string; environment: LibraryEnvironment }
@@ -14,6 +15,7 @@ export class LibraryClient {
   private csrf = '';
   private contextRequest?: Promise<LibraryContext>;
   url(path: string, scope = this.scope) { return `/api/library/${path}${path.includes('?') ? '&' : '?'}scope=${scope}`; }
+  mediaUrl(path: string, scope = this.scope) { return localConnection.mediaUrl(this.url(path, scope)); }
   context() {
     if (!this.contextRequest) {
       const pending = this.request<LibraryContext>('context', undefined, 'GET', 'personal').then(context => { this.csrf = context.csrfToken; return context; }).finally(() => { if (this.contextRequest === pending) this.contextRequest = undefined; });
@@ -22,7 +24,7 @@ export class LibraryClient {
     return this.contextRequest;
   }
   async request<T>(path: string, data?: unknown, method = data === undefined ? 'GET' : 'POST', scope = this.scope): Promise<T> {
-    const response = await fetch(this.url(path, scope), { method, credentials: 'same-origin', cache: 'no-store', headers: data === undefined && method === 'GET' ? {} : { 'Content-Type': 'application/json', 'X-CSRF-Token': this.csrf }, body: data === undefined ? undefined : JSON.stringify(data) });
+    const response = await localConnection.request(this.url(path, scope), { method, credentials: 'same-origin', cache: 'no-store', headers: data === undefined && method === 'GET' ? {} : { 'Content-Type': 'application/json', 'X-CSRF-Token': this.csrf }, body: data === undefined ? undefined : JSON.stringify(data) });
     const value = await response.json();
     if (!response.ok) throw new LibraryApiError(value.error?.code || 'LIBRARY_UNAVAILABLE', value.error?.message || '本机录音库暂时不可用，请重试。', response.status);
     return value as T;
@@ -30,7 +32,7 @@ export class LibraryClient {
   async upload(uploadId: string, role: 'original' | 'playable', file: Blob, scope: 'personal' | 'account', progress: (loaded: number, total: number) => void) {
     await new Promise<void>((resolvePromise, reject) => {
       const request = new XMLHttpRequest();
-      request.open('PUT', this.url(`imports/${uploadId}/content?role=${role}`, scope)); request.setRequestHeader('X-CSRF-Token', this.csrf); request.setRequestHeader('Content-Type', 'application/octet-stream');
+      request.open('PUT', localConnection.apiUrl(this.url(`imports/${uploadId}/content?role=${role}`, scope))); localConnection.authorizeUpload(request); request.setRequestHeader('X-CSRF-Token', this.csrf); request.setRequestHeader('Content-Type', 'application/octet-stream');
       request.upload.onprogress = e => progress(e.loaded, e.lengthComputable ? e.total : file.size);
       request.onload = () => { if (request.status >= 200 && request.status < 300) resolvePromise(); else { let message = '文件上传未完成，请重新导入。'; try { message = JSON.parse(request.responseText).error?.message || message; } catch {} reject(new Error(message)); } };
       request.onerror = request.onabort = () => reject(new Error('上传中断，未完成的文件不会进入录音库。'));

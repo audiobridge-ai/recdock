@@ -4,10 +4,13 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": ">=22.18.0"
+    "node": ">=22.18.0 <23"
   },
   "scripts": {
     "dev": "vite --host localhost",
+    "companion": "node --experimental-strip-types server/companion/main.ts",
+    "dev:web": "vite --mode web --host localhost",
+    "preview:web": "vite preview --mode web --host localhost",
     "build": "tsc --noEmit && vite build",
     "test": "node --experimental-strip-types --test tests/*.test.ts",
     "preview": "vite preview --host localhost"

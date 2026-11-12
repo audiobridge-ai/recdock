@@ -10,6 +10,7 @@ import { formatBytes } from '../protocol/status.ts';
 import { deviceRecordingTitle, recordingTitle } from './recording-title.ts';
 import { ChatGPTForwarder } from '../chatgpt/forwarder.ts';
 import type { ForwardBridge } from '../chatgpt/forwarder.ts';
+import { localConnection } from '../local/connection.ts';
 
 export interface DeviceWorkspaceState { deviceId?: string; name: string; connected: boolean; canDownload: boolean; busy: boolean; status: string; duration: string; battery?: number; files: RecordingFile[]; transfer: TransferStatus; hint: string }
 export interface DownloadOptions { transcribe: boolean; language: 'zh' | 'en' }
@@ -94,12 +95,14 @@ export class LibraryWorkspace {
   private failure(error: unknown) { this.notice(error instanceof Error ? error.message : '操作未完成，请重试。', true); }
   private discard() { if (!this.editing) return true; if (!confirm('本段有尚未保存的修改。离开将放弃这些修改，继续吗？')) return false; this.editing = false; return true; }
   initialize() { return this.refreshContext(); }
+  async reconnectCompanion() { await this.refreshContext(); await this.refresh(); this.schedule(); }
   get transcriptionLanguage() { return this.language; }
   setTranscriptionLanguage(language: 'zh' | 'en') { this.language = language === 'en' ? 'en' : 'zh'; try { window.localStorage.setItem('recdock.transcriptionLanguage', this.language); } catch { /* The setting remains usable in this page. */ } }
   async refreshIdentity() { if (this.visible) { try { await this.refreshContext(); await this.refresh(); } catch (e) { this.failure(e); } } }
   async open() {
     if (this.visible) return;
     this.visible = true; this.root.hidden = false; this.entry.setAttribute('aria-current', 'page'); this.onVisibility(true); history.replaceState(null, '', '#library');
+    if (localConnection.remote && !localConnection.paired) { this.notice('请先连接本地助手，再导入或读取本机录音。'); return; }
     this.notice('正在读取本机录音库…');
     try { await this.refreshContext(); await this.refresh(); if (!this.importing) this.notice('录音、全文与已保存的修改都保存在本机。'); }
     catch (e) { this.failure(e); } finally { this.schedule(); }
@@ -113,7 +116,7 @@ export class LibraryWorkspace {
     this.renderList();
     this.options.onEnvironment?.(this.context.environment);
   }
-  private schedule() { clearTimeout(this.timer); if (this.visible) this.timer = setTimeout(() => { void this.refresh().catch(async e => { try { await this.refreshContext(); await this.refresh(); } catch { this.failure(e); } }).finally(() => this.schedule()); }, 2500); }
+  private schedule() { clearTimeout(this.timer); if (this.visible && (!localConnection.remote || localConnection.paired)) this.timer = setTimeout(() => { void this.refresh().catch(async e => { try { await this.refreshContext(); await this.refresh(); } catch { this.failure(e); } }).finally(() => this.schedule()); }, 2500); }
   private clearSelected(clearList = true) { this.generation++; this.selected = undefined; this.selectedDevice = undefined; this.page = undefined; this.forwarder.select(); this.listSignature = ''; this.audio().pause(); this.audio().removeAttribute('src'); this.view('detail').hidden = true; this.view('device-detail').hidden = true; this.view('rename-form').hidden = true; this.view('empty').hidden = false; this.view('paragraphs').replaceChildren(); if (clearList) { this.rows = []; this.view('list').replaceChildren(); } }
   private async refresh() {
     const generation = this.generation;
@@ -263,7 +266,14 @@ export class LibraryWorkspace {
   private status(row: RecordingRow) { return row.recording.state === 'deleted' ? '回收站' : row.recording.state === 'needs_recovery' ? '需要恢复音频' : row.recording.state === 'unsupported' ? '音频暂不支持' : row.job ? (row.job.state === 'running' ? stageNames[row.job.stage!] : stateNames[row.job.state]) : '已保存 · 尚未转写'; }
   private async select(row: ScopedRecordingRow) {
     const changed = row.scope !== this.selected?.scope || row.recording.id !== this.selected?.recording.id; this.client.scope = row.scope; this.selectedDevice = undefined; this.view('device-detail').hidden = true; this.view('rename-form').hidden = true; this.selected = row;
-    if (changed) { this.generation++; this.page = undefined; this.forwarder.select(); this.version = ''; this.view('paragraphs').replaceChildren(); this.cursor = 0; this.query = ''; this.speaker = ''; this.mode = 'all'; this.field('search').value = ''; this.field('mode').value = 'all'; this.playEnd = null; this.audio().pause(); this.audio().src = this.client.url(`recordings/${row.recording.id}/audio`); }
+    if (changed) {
+      const generation = ++this.generation; this.page = undefined; this.forwarder.select(); this.version = ''; this.view('paragraphs').replaceChildren(); this.cursor = 0; this.query = ''; this.speaker = ''; this.mode = 'all'; this.field('search').value = ''; this.field('mode').value = 'all'; this.playEnd = null; this.audio().pause(); this.audio().removeAttribute('src');
+      if (localConnection.remote) {
+        const url = await this.client.mediaUrl(`recordings/${row.recording.id}/audio`, row.scope);
+        if (generation !== this.generation) return;
+        this.audio().crossOrigin = 'anonymous'; this.audio().src = url;
+      } else this.audio().src = this.client.url(`recordings/${row.recording.id}/audio`, row.scope);
+    }
     this.view('empty').hidden = true; this.view('detail').hidden = false; this.renderHeader();
     if (row.revision && row.recording.state !== 'deleted') await this.loadTranscript(); else this.view('reader').hidden = true;
     await this.refresh();
@@ -437,7 +447,11 @@ export class LibraryWorkspace {
     this.field('speed').onchange = () => { this.audio().playbackRate = Number(this.field('speed').value); };
     this.button('back').onclick = () => { this.playEnd = null; this.audio().currentTime = Math.max(0, this.audio().currentTime - 5); }; this.button('forward').onclick = () => { this.playEnd = null; this.audio().currentTime = Math.min(this.audio().duration || 0, this.audio().currentTime + 5); };
   }
-  private download(url: string, filename?: string) { const anchor = el('a'); anchor.href = url; if (filename) anchor.download = filename; anchor.click(); }
+  private download(url: string, filename?: string) {
+    const save = (href: string) => { const anchor = el('a'); anchor.href = href; anchor.referrerPolicy = 'no-referrer'; if (filename) anchor.download = filename; anchor.click(); };
+    if (!localConnection.remote) save(url);
+    else void localConnection.mediaUrl(url).then(save).catch(e => this.failure(e));
+  }
   private async importFiles(files: File[]) {
     if (!files.length || this.importing) return; this.importing = true; const transcribe = this.importingWithTranscription, language = this.language; this.button('import-menu').disabled = true; this.button('import').disabled = true; this.button('import-only').disabled = true;
     try {

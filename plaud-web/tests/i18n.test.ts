@@ -57,6 +57,7 @@ test('Website has English HTML and complete in-place Chinese/English switching w
   try {
     assert.equal(dom.window.document.documentElement.lang, 'en');
     assert.match(dom.window.document.querySelector('h1')!.textContent!, /Turn recordings/);
+    assert.match(dom.window.document.querySelector('h1')!.textContent!, /useful\s+text/);
     dom.window.eval(runtime); dom.window.document.dispatchEvent(new dom.window.Event('DOMContentLoaded'));
     const toggle = dom.window.document.querySelector('#language-switch')!;
     const href = dom.window.document.querySelector('#download a.button')!.getAttribute('href');

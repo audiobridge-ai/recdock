@@ -1,0 +1,21 @@
+{
+  "version": "1.0.0-rc.3",
+  "platform": "macos-arm64",
+  "minimumMacOS": "26.2",
+  "electron": "45.3.1",
+  "electronArchiveSha256": "ed40f8473a3c62a7c0463bd42f6724ccb8d5919cfdc64e0d9f65f61bdb3fe4d2",
+  "distribution": "local-ad-hoc",
+  "notarized": false,
+  "machOCount": 371,
+  "appBytes": 1495618037,
+  "signatureVerified": true,
+  "archiveBytes": 486607222,
+  "archiveSha256": "db78f00f2d784efb67b18e593d5457562088d4c7d74b0f0bdabb1f646dda975d",
+  "archive": "RecDock-1.0.0-rc.3-macos-arm64.zip",
+  "sourceCommit": "ea2290744b7235505fca052884ce75872ae93aba",
+  "defaultLanguage": "en",
+  "interfaceLanguages": [
+    "en",
+    "zh-CN"
+  ]
+}

@@ -183,6 +183,10 @@ test('校对修改持久保存、清空旧词时间、检测冲突，完整导�
     assert.match(await readFile(join(directory, 'exports', base, 'transcript.md'), 'utf8'), /合成测试第一段/);
     const old = await f.guest.request(path + `/transcript?revision=${base}`); assert.equal(old.json.transcript.segments[0].text, '合成测试第一段。'); assert.deepEqual(old.json.revision.reviewedIds, []);
     const exported = await f.guest.request(path + '/exports', { revisionId: edited.json.revision.revisionId, format: 'md' }); assert.equal(exported.status, 200);
+    const englishExport = await f.guest.request(path + '/exports', { revisionId: edited.json.revision.revisionId, format: 'txt', locale: 'en' }); assert.equal(englishExport.status, 200);
+    const englishDownload = await f.guest.request(englishExport.json.url); assert.match(englishDownload.raw.toString(), /Recording ID:/); assert.match(englishDownload.raw.toString(), /已人工修改的第一段/); assert.match(englishDownload.raw.toString(), /主持人/);
+    for (const locale of ['fr', ['en'], { language: 'en' }]) { const invalid = await f.guest.request(path + '/exports', { revisionId: edited.json.revision.revisionId, format: 'txt', locale }); assert.equal(invalid.status, 400); assert.equal(invalid.json.error.code, 'UI_LANGUAGE_INVALID'); }
+
     const download = await f.guest.request(exported.json.url); assert.match(download.raw.toString(), /已人工修改的第一段/); assert.match(download.raw.toString(), /合成测试最后一段/); assert.match(download.raw.toString(), /主持人/); assert.match(download.raw.toString(), /1\/2 段/); assert.equal(createHash('sha256').update(download.raw).digest('hex'), exported.json.sha256);
     await f.restart(); const restored = await f.guest.request(path + '/transcript'); assert.equal(restored.json.transcript.revisionId, edited.json.revision.revisionId);
     const history = await f.guest.request(path + '/revisions'); assert.equal(history.json.revisions.length, 2);

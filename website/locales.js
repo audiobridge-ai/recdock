@@ -70,7 +70,7 @@ const translations = {
         "zh": "录音，"
       },
       "2": {
-        "en": "into useful",
+        "en": "into useful ",
         "zh": "成为可用的"
       }
     },

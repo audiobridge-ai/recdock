@@ -17,12 +17,49 @@ The app includes Electron, Node, Python, FFmpeg, and its processing dependencies
 
 ## Install RecDock
 
-1. Follow the [website download link](https://recdock-plaud-web.vercel.app/#download) to GitHub Releases. Choose `RecDock-1.0.0-rc.3-macos-arm64.zip`; download the matching `SHA256SUMS.txt` if you want to verify it with `shasum -a 256 -c SHA256SUMS.txt` in the download folder.
+1. Follow the [website download link](https://recdock-plaud-web.vercel.app/#download) to GitHub Releases. Choose `RecDock-1.0.0-rc.3-macos-arm64.zip` and the matching `SHA256SUMS.txt`.
 2. Quit any previous RecDock app or local companion and let its service stop. Fully extract the ZIP, then move `RecDock.app` to Applications.
-3. Open the app. This candidate has a **local ad-hoc signature and no Developer ID certificate or Apple notarization**. If macOS cannot verify the developer, check the file's source and checksum and consult [Apple's opening instructions](https://support.apple.com/en-us/102445). On systems that permit it, the app-specific approval is under **System Settings → Privacy & Security → Open Anyway** after attempting to open the app.
+3. Open the app. This candidate has a **local ad-hoc signature and no Developer ID certificate or Apple notarization**, so first launch may require manual approval. For a trusted, verified download, the app-specific approval is under **System Settings → Privacy & Security → Open Anyway** after attempting to open the app; see [Apple's instructions](https://support.apple.com/en-us/102445). If the message says the app is damaged, follow the checks and quarantine workaround below.
 4. Continue with **Models & App** to prepare the models, then import a short recording to try the workflow.
 
-If macOS reports a damaged app, signature validation fails, or protection software stops a process, retain the exact message and check the download's integrity. Managed computers remain subject to their administrator's policy.
+### If macOS says RecDock is damaged
+
+> [!WARNING]
+> A manually downloaded app without Developer ID signing and notarization may be blocked on first launch. Only use the workaround below for an official RecDock download that you trust and whose integrity checks pass.
+
+After copying the app to Applications, you may see:
+
+> “RecDock.app” is damaged and can't be opened. You should move it to the Bin.
+
+This message alone does not establish the cause. Download quarantine can be involved, but actual corruption or tampering can produce a similar message.
+
+1. **Verify the ZIP.** In the folder containing the installation ZIP and its matching `SHA256SUMS.txt` from the [official release](https://github.com/audiobridge-ai/recdock/releases/tag/desktop-v1.0.0-rc.3), run:
+
+   ```sh
+   shasum -a 256 -c SHA256SUMS.txt
+   ```
+
+   The ZIP should be reported as `OK`. If the checksum differs, re-download it before continuing.
+
+2. **Verify the extracted app.** With the complete app in Applications, run:
+
+   ```sh
+   codesign --verify --deep --strict --verbose=2 "/Applications/RecDock.app"
+   ```
+
+   The current candidate includes an ad-hoc signature. This check validates bundle integrity, not the publisher's Apple Developer identity. If it fails, re-extract the verified ZIP or report the error.
+
+3. **Remove quarantine for this app only.** If both checks pass, you trust the official download, and the app is still blocked by quarantine, run:
+
+   ```sh
+   xattr -rd com.apple.quarantine "/Applications/RecDock.app"
+   ```
+
+4. Open RecDock again from Applications. If you installed it elsewhere, use that exact app path in the commands above.
+
+The `xattr` command recursively removes the `com.apple.quarantine` attribute from this app bundle and its bundled components. It bypasses the download-quarantine gate for this copy; it does not add a Developer ID certificate, notarize the app, or repair damaged files. A new download or updated copy may need approval again. Bluetooth, local-network, and Keychain permissions are separate.
+
+If macOS reports malware, integrity verification fails, or the problem persists, retain the exact error and report it. Managed computers remain subject to their administrator's policy; do not disable Gatekeeper globally or use this command to override company protection.
 
 ## Prepare your models
 

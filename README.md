@@ -11,7 +11,7 @@ RecDock is an independent project, not affiliated with or endorsed by PLAUD.
 ## Get started
 
 1. **Download RecDock** from the [website](https://recdock-plaud-web.vercel.app/#download). The current Mac release candidate is **1.0.0-rc.3**; installation files and their checksums are hosted on GitHub Releases.
-2. **Install the Mac app.** Quit any older RecDock app or companion, fully extract the ZIP, and move `RecDock.app` to Applications. See the [installation guide](desktop/README.md#install-recdock) for the current candidate's macOS approval steps.
+2. **Install the Mac app.** Quit any older RecDock app or companion, fully extract the ZIP, and move `RecDock.app` to Applications. Follow the [first-launch instructions](#first-launch-on-macos) if macOS blocks it or says the app is damaged.
 3. **Prepare your models.** Open **Models & App** to select an existing model folder or download and verify the models. The speaker model requires you to accept its Hugging Face access conditions and supply an authorized download token.
 4. **Import a recording.** Select its language under **Settings → Transcription settings**, then choose **Import → Import & transcribe**, or **Import audio only** to save it for later. No device connection or PLAUD sign-in is needed for local audio.
 5. **Review and take the transcript with you.** Click timestamps to listen, edit text and speaker names, then export the complete transcript or optionally [send it to ChatGPT](#send-a-transcript-to-chatgpt).
@@ -31,6 +31,27 @@ You do not need Node.js, Python, Homebrew, or developer tools to use the package
 | Other desktop platforms | Windows and Intel Mac downloads are not available yet |
 
 The current release is an **unnotarized candidate**, with a local ad-hoc signature rather than a Developer ID certificate. Read the [release notes](https://github.com/audiobridge-ai/recdock/releases/tag/desktop-v1.0.0-rc.3) and [installation guide](desktop/README.md#install-recdock) before installing. Clean-Mac installation and desktop PLAUD hardware regression remain unverified.
+
+### First launch on macOS
+
+> [!WARNING]
+> The current Mac candidate is not signed with an Apple Developer ID certificate or notarized by Apple. You may need to explicitly allow it to run on first launch.
+
+After moving the app to Applications, macOS may display:
+
+> “RecDock.app” is damaged and can't be opened. You should move it to the Bin.
+
+For a trusted, verified download, first try **System Settings → Privacy & Security → Open Anyway**, following [Apple's instructions](https://support.apple.com/en-us/102445).
+
+If the downloaded app is still blocked by quarantine, and you have verified the official release's checksum and the app bundle using the [installation checks](desktop/README.md#if-macos-says-recdock-is-damaged), open Terminal and run:
+
+```sh
+xattr -rd com.apple.quarantine "/Applications/RecDock.app"
+```
+
+Then open RecDock again. This removes the download-quarantine attribute from **RecDock.app and its bundled files only**; the app remains ad-hoc signed and unnotarized. A replacement download or update may need approval again.
+
+A damaged-app message can also indicate actual corruption or tampering. If integrity checks fail or macOS reports malware, stop and re-download or report the issue. Company-managed Macs may enforce additional restrictions.
 
 ## What you can do
 

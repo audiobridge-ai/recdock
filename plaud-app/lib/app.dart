@@ -1,9 +1,12 @@
+import 'l10n/app_localizations.dart';
+import 'l10n/language_controller.dart';
 import 'dart:async';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -29,7 +32,7 @@ import 'features/transcription/models.dart';
 import 'features/transcription/task_center.dart';
 import 'features/transcription/background/native_queue.dart';
 
-class RecDockApp extends StatelessWidget {
+class RecDockApp extends StatefulWidget {
   const RecDockApp(
       {super.key,
       this.store,
@@ -37,42 +40,65 @@ class RecDockApp extends StatelessWidget {
       this.device,
       this.scanner,
       this.linkFactory,
-      this.assemblyClient});
+      this.assemblyClient,
+      this.language});
   final RecordingStore? store;
   final AuthController? auth;
   final DeviceController? device;
   final DeviceScanner? scanner;
   final Future<DeviceLink> Function(NearbyDevice)? linkFactory;
   final AssemblyClient? assemblyClient;
+  final LanguageController? language;
 
   @override
-  Widget build(BuildContext context) => MaterialApp(
-        debugShowCheckedModeBanner: false,
-        title: 'RecDock',
-        theme: ThemeData(
-            useMaterial3: true,
-            colorScheme: ColorScheme.fromSeed(
-                seedColor: Colors.black,
-                primary: Colors.black,
-                surface: Colors.white),
-            scaffoldBackgroundColor: const Color(0xfffafafa),
-            appBarTheme: const AppBarTheme(
-                backgroundColor: Color(0xfffafafa),
-                surfaceTintColor: Colors.transparent),
-            filledButtonTheme: FilledButtonThemeData(
-                style: FilledButton.styleFrom(
-                    backgroundColor: Colors.black,
-                    foregroundColor: Colors.white)),
-            inputDecorationTheme:
-                const InputDecorationTheme(border: OutlineInputBorder())),
-        home: Workspace(
-            store: store,
-            auth: auth,
-            device: device,
-            scanner: scanner,
-            linkFactory: linkFactory,
-            assemblyClient: assemblyClient),
-      );
+  State<RecDockApp> createState() => _RecDockAppState();
+}
+
+class _RecDockAppState extends State<RecDockApp> {
+  late final LanguageController language =
+      widget.language ?? LanguageController();
+
+  @override
+  void dispose() {
+    if (widget.language == null) language.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => LanguageScope(
+      controller: language,
+      child: ListenableBuilder(
+          listenable: language,
+          builder: (context, _) => MaterialApp(
+                debugShowCheckedModeBanner: false,
+                title: 'RecDock',
+                locale: language.locale,
+                supportedLocales: AppLocalizations.supportedLocales,
+                localizationsDelegates: GlobalMaterialLocalizations.delegates,
+                theme: ThemeData(
+                    useMaterial3: true,
+                    colorScheme: ColorScheme.fromSeed(
+                        seedColor: Colors.black,
+                        primary: Colors.black,
+                        surface: Colors.white),
+                    scaffoldBackgroundColor: const Color(0xfffafafa),
+                    appBarTheme: const AppBarTheme(
+                        backgroundColor: Color(0xfffafafa),
+                        surfaceTintColor: Colors.transparent),
+                    filledButtonTheme: FilledButtonThemeData(
+                        style: FilledButton.styleFrom(
+                            backgroundColor: Colors.black,
+                            foregroundColor: Colors.white)),
+                    inputDecorationTheme: const InputDecorationTheme(
+                        border: OutlineInputBorder())),
+                home: Workspace(
+                    store: widget.store,
+                    auth: widget.auth,
+                    device: widget.device,
+                    scanner: widget.scanner,
+                    linkFactory: widget.linkFactory,
+                    assemblyClient: widget.assemblyClient),
+              )));
 }
 
 class Workspace extends StatefulWidget {
@@ -345,7 +371,7 @@ class _WorkspaceState extends State<Workspace> with WidgetsBindingObserver {
   void _notice(String message) {
     if (mounted) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(message)));
+          .showSnackBar(SnackBar(content: Text(context.message(message))));
     }
   }
 
@@ -418,17 +444,17 @@ class _WorkspaceState extends State<Workspace> with WidgetsBindingObserver {
               Flexible(
                   child: Text(
                       _tab == 0
-                          ? (_trash ? '回收站' : 'RecDock')
+                          ? (_trash ? context.tr('回收站') : 'RecDock')
                           : _tab == 1
-                              ? '设备'
-                              : '设置',
+                              ? context.tr('设备')
+                              : context.tr('设置'),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis)),
             ]),
             actions: [
               if (_transcription != null && _store != null)
                 IconButton(
-                    tooltip: '转写任务',
+                    tooltip: context.tr('转写任务'),
                     onPressed: () => Navigator.of(context).push(
                         MaterialPageRoute<void>(
                             builder: (_) => TranscriptionTaskCenter(
@@ -441,7 +467,7 @@ class _WorkspaceState extends State<Workspace> with WidgetsBindingObserver {
                         child: const Icon(Icons.playlist_add_check))),
               if (_tab == 0)
                 IconButton(
-                    tooltip: _trash ? '返回录音' : '回收站',
+                    tooltip: _trash ? context.tr('返回录音') : context.tr('回收站'),
                     onPressed: () => setState(() => _trash = !_trash),
                     icon: Icon(_trash
                         ? Icons.library_music_outlined
@@ -465,7 +491,7 @@ class _WorkspaceState extends State<Workspace> with WidgetsBindingObserver {
                         child: CircularProgressIndicator(
                             strokeWidth: 2, color: Colors.white))
                     : const Icon(Icons.add),
-                label: Text(_busy ? '正在导入' : '导入音频'))
+                label: Text(_busy ? context.tr('正在导入') : context.tr('导入音频')))
             : null,
         bottomNavigationBar: NavigationBar(
             selectedIndex: _tab,
@@ -473,18 +499,22 @@ class _WorkspaceState extends State<Workspace> with WidgetsBindingObserver {
               if (tab != 1) unawaited(_scanner.stop());
               setState(() => _tab = tab);
             },
-            destinations: const [
+            destinations: [
               NavigationDestination(
-                  icon: Icon(Icons.library_music_outlined), label: '录音'),
-              NavigationDestination(icon: Icon(Icons.bluetooth), label: '设备'),
-              NavigationDestination(icon: Icon(Icons.tune), label: '设置'),
+                  icon: const Icon(Icons.library_music_outlined),
+                  label: context.tr('录音')),
+              NavigationDestination(
+                  icon: const Icon(Icons.bluetooth), label: context.tr('设备')),
+              NavigationDestination(
+                  icon: const Icon(Icons.tune), label: context.tr('设置')),
             ]),
       );
 
   Widget _library() {
     if (_loadError != null) {
-      return _empty(Icons.folder_off_outlined, _loadError!,
-          action: TextButton(onPressed: _initialize, child: const Text('重试')));
+      return _empty(Icons.folder_off_outlined, context.message(_loadError!),
+          action: TextButton(
+              onPressed: _initialize, child: Text(context.tr('重试'))));
     }
     if (_snapshot == null) {
       return const Center(child: CircularProgressIndicator());
@@ -500,24 +530,27 @@ class _WorkspaceState extends State<Workspace> with WidgetsBindingObserver {
           child: TextField(
               controller: _search,
               onChanged: (_) => setState(() {}),
-              decoration: const InputDecoration(
-                  hintText: '搜索录音',
-                  prefixIcon: Icon(Icons.search),
+              decoration: InputDecoration(
+                  hintText: context.tr('搜索录音'),
+                  prefixIcon: const Icon(Icons.search),
                   isDense: true))),
       if (_snapshot!.unreadableCount > 0)
         Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Text('有 ${_snapshot!.unreadableCount} 条录音暂时无法读取，文件已保留')),
+            child: Text(context
+                .tr('有 {0} 条录音暂时无法读取，文件已保留', [_snapshot!.unreadableCount]))),
       Expanded(
           child: rows.isEmpty
               ? _empty(
                   _trash ? Icons.delete_outline : Icons.graphic_eq,
                   _search.text.isNotEmpty
-                      ? '没有匹配的录音'
+                      ? context.tr('没有匹配的录音')
                       : _trash
-                          ? '回收站是空的'
-                          : '把录音放在一起',
-                  subtitle: _trash ? '移入回收站的录音可以恢复' : '导入手机中的音频，随时播放和整理')
+                          ? context.tr('回收站是空的')
+                          : context.tr('把录音放在一起'),
+                  subtitle: _trash
+                      ? context.tr('移入回收站的录音可以恢复')
+                      : context.tr('导入手机中的音频，随时播放和整理'))
               : RefreshIndicator(
                   onRefresh: _reload,
                   child: ListView.separated(
@@ -539,7 +572,7 @@ class _WorkspaceState extends State<Workspace> with WidgetsBindingObserver {
                             title: Text(recording.title,
                                 maxLines: 2, overflow: TextOverflow.ellipsis),
                             subtitle: Text(
-                                '${_date(recording.createdAt)} · ${_size(recording.bytes)}${_transcription?.snapshots[recording.id]?.latest == null ? '' : '\n${jobLabel(_transcription!.snapshots[recording.id]!.latest!.state)}'}'),
+                                '${_date(recording.createdAt)} · ${_size(recording.bytes)}${_transcription?.snapshots[recording.id]?.latest == null ? '' : '\n${context.message(jobLabel(_transcription!.snapshots[recording.id]!.latest!.state))}'}'),
                             trailing: Icon(
                                 _trash ? Icons.restore : Icons.chevron_right),
                             onTap: () => unawaited(_select(recording)));
@@ -568,18 +601,42 @@ class _WorkspaceState extends State<Workspace> with WidgetsBindingObserver {
       saved: _snapshot?.recordings ?? const []);
 
   Widget _settings() => ListView(padding: const EdgeInsets.all(20), children: [
-        Text('你的录音，保存在本机', style: Theme.of(context).textTheme.headlineSmall),
+        DropdownButtonFormField<String>(
+            key: const Key('interface-language'),
+            value: LanguageScope.of(context).language,
+            isExpanded: true,
+            decoration: InputDecoration(
+                labelText: context.tr('界面语言'),
+                prefixIcon: const Icon(Icons.language)),
+            items: const [
+              DropdownMenuItem(value: 'en', child: Text('English')),
+              DropdownMenuItem(value: 'zh-CN', child: Text('中文')),
+            ],
+            onChanged: (value) async {
+              if (value == null) return;
+              try {
+                await LanguageScope.of(context).select(value);
+              } catch (_) {
+                _notice('语言设置保存失败，请重试');
+              }
+            }),
+        const SizedBox(height: 8),
+        Text(context.tr('仅影响界面和导出说明，不改变录音语言或转写内容。')),
+        const SizedBox(height: 24),
+        Text(context.tr('你的录音，保存在本机'),
+            style: Theme.of(context).textTheme.headlineSmall),
         const SizedBox(height: 12),
-        const Text(
-            '导入音频不需要 PLAUD 账号。原文件保存在 App 专属目录，移入回收站后可以恢复。卸载 App 会清除本机资料。'),
+        Text(context
+            .tr('导入音频不需要 PLAUD 账号。原文件保存在 App 专属目录，移入回收站后可以恢复。卸载 App 会清除本机资料。')),
         const SizedBox(height: 24),
         ListTile(
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.transcribe),
-            title: const Text('AssemblyAI 转写设置'),
+            title: Text(context.tr('AssemblyAI 转写设置')),
             subtitle: Text(_transcription?.settings.config == null
-                ? '配置自己的 API Key，主动上传后转写'
-                : '已配置 · ${_transcription!.settings.config!.region.toUpperCase()}'),
+                ? context.tr('配置自己的 API Key，主动上传后转写')
+                : context.tr('已配置 · {0}',
+                    [_transcription!.settings.config!.region.toUpperCase()])),
             trailing: const Icon(Icons.chevron_right),
             onTap: _transcription == null || _transcription!.settings.loading
                 ? null
@@ -592,15 +649,15 @@ class _WorkspaceState extends State<Workspace> with WidgetsBindingObserver {
             contentPadding: EdgeInsets.zero,
             leading: Icon(Icons.info_outline),
             title: Text('RecDock'),
-            subtitle: Text('0.3.0 · Android / iOS')),
-        const Text('RecDock 是独立客户端，与 PLAUD 官方无关联。'),
+            subtitle: Text('0.3.1 · Android / iOS')),
+        Text(context.tr('RecDock 是独立客户端，与 PLAUD 官方无关联。')),
       ]);
 }
 
 Widget _empty(IconData icon, String title,
         {String? subtitle, Widget? action}) =>
     Center(
-        child: Padding(
+        child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
             child: Column(mainAxisSize: MainAxisSize.min, children: [
               Icon(icon, size: 48, color: Colors.black54),
@@ -695,7 +752,7 @@ class _RecordingDetailState extends State<RecordingDetail>
     final title = await showDialog<String>(
         context: context,
         builder: (context) => AlertDialog(
-                title: const Text('修改标题'),
+                title: Text(context.tr('修改标题')),
                 content: TextFormField(
                     initialValue: draft,
                     onChanged: (value) => draft = value,
@@ -704,10 +761,10 @@ class _RecordingDetailState extends State<RecordingDetail>
                 actions: [
                   TextButton(
                       onPressed: () => Navigator.pop(context),
-                      child: const Text('取消')),
+                      child: Text(context.tr('取消'))),
                   FilledButton(
                       onPressed: () => Navigator.pop(context, draft),
-                      child: const Text('保存'))
+                      child: Text(context.tr('保存')))
                 ]));
     if (title == null || !mounted) return;
     try {
@@ -716,7 +773,7 @@ class _RecordingDetailState extends State<RecordingDetail>
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('标题保存失败，请填写 1–200 个字符后重试')));
+            SnackBar(content: Text(context.tr('标题保存失败，请填写 1–200 个字符后重试'))));
       }
     }
   }
@@ -725,15 +782,15 @@ class _RecordingDetailState extends State<RecordingDetail>
     final confirmed = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
-                title: const Text('移入回收站？'),
-                content: const Text('原音频仍会保留，可以从回收站恢复。'),
+                title: Text(context.tr('移入回收站？')),
+                content: Text(context.tr('原音频仍会保留，可以从回收站恢复。')),
                 actions: [
                   TextButton(
                       onPressed: () => Navigator.pop(context, false),
-                      child: const Text('取消')),
+                      child: Text(context.tr('取消'))),
                   FilledButton(
                       onPressed: () => Navigator.pop(context, true),
-                      child: const Text('移入回收站'))
+                      child: Text(context.tr('移入回收站')))
                 ]));
     if (confirmed != true || !mounted) return;
     try {
@@ -746,20 +803,20 @@ class _RecordingDetailState extends State<RecordingDetail>
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('操作未完成，请重试')));
+            .showSnackBar(SnackBar(content: Text(context.tr('操作未完成，请重试'))));
       }
     }
   }
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('录音详情'), actions: [
+        appBar: AppBar(title: Text(context.tr('录音详情')), actions: [
           IconButton(
-              tooltip: '修改标题',
+              tooltip: context.tr('修改标题'),
               onPressed: _rename,
               icon: const Icon(Icons.edit_outlined)),
           IconButton(
-              tooltip: '移入回收站',
+              tooltip: context.tr('移入回收站'),
               onPressed: _delete,
               icon: const Icon(Icons.delete_outline))
         ]),
@@ -785,7 +842,7 @@ class _RecordingDetailState extends State<RecordingDetail>
             style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: 12),
         Text('${_date(_recording.createdAt)} · ${_size(_recording.bytes)}'),
-        if (_error != null) Text(_error!),
+        if (_error != null) Text(context.message(_error!)),
         if (_error == null && !_ready)
           const Center(child: CircularProgressIndicator()),
         if (_ready)

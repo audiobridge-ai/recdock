@@ -104,7 +104,7 @@ The Mac app is the primary downloadable product. The repository also contains it
 | [`plaud-web/`](plaud-web/) | Shared TypeScript workspace, Node local API, Python audio worker, and device protocols | [Workspace development](plaud-web/README.md) |
 | [`plaud-web/extensions/chatgpt-bridge/`](plaud-web/extensions/chatgpt-bridge/) | Optional Edge extension for ChatGPT forwarding | [Extension guide](plaud-web/extensions/chatgpt-bridge/README.md) |
 | [`companion-macos/`](companion-macos/) | Earlier website-companion app and self-contained runtime packaging | [Companion development](companion-macos/README.md) |
-| [`plaud-app/`](plaud-app/) | Experimental Flutter Android/iOS client with a separate AssemblyAI transcription workflow | [Mobile development](plaud-app/README.md) |
+| [`plaud-app/`](plaud-app/) | Experimental Flutter Android/iOS client with a separate AssemblyAI transcription workflow | [Mobile guide and Android preview](plaud-app/README.md) |
 | [`docs/`](docs/) | Shared architecture, contracts, and validation reports | [Repository and cross-platform guide](docs/repository-layout.md) |
 
 ### Run the shared workspace from source

@@ -1,3 +1,4 @@
+import '../../l10n/app_localizations.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../core/failure.dart';
@@ -116,17 +117,25 @@ class _TranscriptionPanelState extends State<TranscriptionPanel> {
     final confirmed = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
-                title: const Text('上传并开始转写？'),
+                title: Text(context.tr('上传并开始转写？')),
                 content: SingleChildScrollView(
-                    child: Text(
-                        '将把“${widget.recording.title}”的完整可播放音频上传到 AssemblyAI ${config.region == 'eu' ? '欧盟' : '美国'}区域，开启讲话人区分。\n\n语言：${config.language}；模型：${config.speechModels.join(' / ')}。\n默认逐条上传，最多两条云端任务，可离开页面。iOS 后台查询可能延迟，返回 App 自动同步。\n\n费用由你的 API Key 所属项目承担，本机原件继续保留。关闭页面或暂停查询不会取消云端处理或计费。')),
+                    child: Text(context.tr(
+                        '将把“{0}”的完整可播放音频上传到 AssemblyAI {1}区域，开启讲话人区分。\n\n语言：{2}；模型：{3}。\n默认逐条上传，最多两条云端任务，可离开页面。iOS 后台查询可能延迟，返回 App 自动同步。\n\n费用由你的 API Key 所属项目承担，本机原件继续保留。关闭页面或暂停查询不会取消云端处理或计费。',
+                        [
+                      widget.recording.title,
+                      config.region == 'eu'
+                          ? context.tr('欧盟')
+                          : context.tr('美国'),
+                      config.language,
+                      config.speechModels.join(' / ')
+                    ]))),
                 actions: [
                   TextButton(
                       onPressed: () => Navigator.pop(context, false),
-                      child: const Text('取消')),
+                      child: Text(context.tr('取消'))),
                   FilledButton(
                       onPressed: () => Navigator.pop(context, true),
-                      child: const Text('上传并开始转写'))
+                      child: Text(context.tr('上传并开始转写')))
                 ]));
     if (confirmed == true && mounted) {
       await guard(() =>
@@ -139,19 +148,19 @@ class _TranscriptionPanelState extends State<TranscriptionPanel> {
     final value = await showDialog<String>(
         context: context,
         builder: (context) => AlertDialog(
-                title: const Text('关联已有任务'),
+                title: Text(context.tr('关联已有任务')),
                 content: TextField(
                     autofocus: true,
                     onChanged: (v) => id = v,
-                    decoration:
-                        const InputDecoration(labelText: 'AssemblyAI 任务 ID')),
+                    decoration: InputDecoration(
+                        labelText: context.tr('AssemblyAI 任务 ID'))),
                 actions: [
                   TextButton(
                       onPressed: () => Navigator.pop(context),
-                      child: const Text('取消')),
+                      child: Text(context.tr('取消'))),
                   FilledButton(
                       onPressed: () => Navigator.pop(context, id),
-                      child: const Text('关联'))
+                      child: Text(context.tr('关联')))
                 ]));
     if (value != null && mounted) {
       await guard(() => controller.attach(widget.recording, value));
@@ -162,16 +171,16 @@ class _TranscriptionPanelState extends State<TranscriptionPanel> {
     final confirmed = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
-                title: const Text('结束本机跟踪？'),
-                content: const Text(
-                    '这不会取消或删除云端任务。请先在 AssemblyAI 控制台核对任务；再次转写可能创建重复任务并产生额外费用。'),
+                title: Text(context.tr('结束本机跟踪？')),
+                content: Text(context.tr(
+                    '这不会取消或删除云端任务。请先在 AssemblyAI 控制台核对任务；再次转写可能创建重复任务并产生额外费用。')),
                 actions: [
                   TextButton(
                       onPressed: () => Navigator.pop(context, false),
-                      child: const Text('返回核对')),
+                      child: Text(context.tr('返回核对'))),
                   FilledButton(
                       onPressed: () => Navigator.pop(context, true),
-                      child: const Text('已核对，结束跟踪'))
+                      child: Text(context.tr('已核对，结束跟踪')))
                 ]));
     if (confirmed == true && mounted) {
       await guard(() => controller.abandon(widget.recording));
@@ -188,7 +197,7 @@ class _TranscriptionPanelState extends State<TranscriptionPanel> {
           context: context,
           builder: (context) => StatefulBuilder(
               builder: (context, setDialog) => AlertDialog(
-                      title: const Text('校对段落'),
+                      title: Text(context.tr('校对段落')),
                       scrollable: true,
                       content: SizedBox(
                           width: 480,
@@ -198,39 +207,40 @@ class _TranscriptionPanelState extends State<TranscriptionPanel> {
                                 controller: text,
                                 minLines: 3,
                                 maxLines: 10,
-                                decoration:
-                                    const InputDecoration(labelText: '文字')),
+                                decoration: InputDecoration(
+                                    labelText: context.tr('文字'))),
                             const SizedBox(height: 16),
                             DropdownButtonFormField<String>(
                                 value: speaker ?? '',
                                 isExpanded: true,
-                                decoration:
-                                    const InputDecoration(labelText: '讲话人'),
+                                decoration: InputDecoration(
+                                    labelText: context.tr('讲话人')),
                                 items: [
-                                  const DropdownMenuItem(
-                                      value: '', child: Text('待确认')),
+                                  DropdownMenuItem(
+                                      value: '',
+                                      child: Text(context.tr('待确认'))),
                                   for (final s in base.speakers)
                                     DropdownMenuItem(
                                         value: s['id'] as String,
-                                        child: Text(s['displayName'] as String))
+                                        child: Text(context.l10n.speaker(s)))
                                 ],
                                 onChanged: (v) => setDialog(
                                     () => speaker = v == '' ? null : v)),
                             CheckboxListTile(
                                 contentPadding: EdgeInsets.zero,
-                                title: const Text('已听原音并核对此段'),
+                                title: Text(context.tr('已听原音并核对此段')),
                                 value: reviewed,
                                 onChanged: (v) =>
                                     setDialog(() => reviewed = v!)),
-                            const Text('修改文字后旧词级时间不再沿用；段落时间用于定位原音。')
+                            Text(context.tr('修改文字后旧词级时间不再沿用；段落时间用于定位原音。'))
                           ])),
                       actions: [
                         TextButton(
                             onPressed: () => Navigator.pop(context, false),
-                            child: const Text('取消')),
+                            child: Text(context.tr('取消'))),
                         FilledButton(
                             onPressed: () => Navigator.pop(context, true),
-                            child: const Text('保存新版本'))
+                            child: Text(context.tr('保存新版本')))
                       ])));
       if (saved == true && mounted) {
         await guard(() async {
@@ -251,11 +261,11 @@ class _TranscriptionPanelState extends State<TranscriptionPanel> {
 
   Future<void> renameSpeaker(Json speaker) async {
     final base = revision!;
-    var value = speaker['displayName'] as String;
+    var value = context.l10n.speaker(speaker);
     final name = await showDialog<String>(
         context: context,
         builder: (context) => AlertDialog(
-                title: const Text('修改人物名称'),
+                title: Text(context.tr('修改人物名称')),
                 content: TextFormField(
                     initialValue: value,
                     maxLength: 100,
@@ -263,10 +273,10 @@ class _TranscriptionPanelState extends State<TranscriptionPanel> {
                 actions: [
                   TextButton(
                       onPressed: () => Navigator.pop(context),
-                      child: const Text('取消')),
+                      child: Text(context.tr('取消'))),
                   FilledButton(
                       onPressed: () => Navigator.pop(context, value),
-                      child: const Text('保存新版本'))
+                      child: Text(context.tr('保存新版本')))
                 ]));
     if (name != null && mounted) {
       await guard(() async {
@@ -285,17 +295,17 @@ class _TranscriptionPanelState extends State<TranscriptionPanel> {
       final confirmed = await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
-                  title: const Text('校对全文'),
+                  title: Text(context.tr('校对全文')),
                   scrollable: true,
                   content:
                       TextField(controller: input, minLines: 5, maxLines: 18),
                   actions: [
                     TextButton(
                         onPressed: () => Navigator.pop(context, false),
-                        child: const Text('取消')),
+                        child: Text(context.tr('取消'))),
                     FilledButton(
                         onPressed: () => Navigator.pop(context, true),
-                        child: const Text('保存新版本'))
+                        child: Text(context.tr('保存新版本')))
                   ]));
       if (confirmed == true && mounted) {
         await guard(() async {
@@ -322,8 +332,10 @@ class _TranscriptionPanelState extends State<TranscriptionPanel> {
                 itemBuilder: (context, index) {
                   final id = snapshot.revisions.reversed.elementAt(index);
                   return ListTile(
-                      title: Text(
-                          '版本 ${snapshot.revisions.length - index}${id == snapshot.current ? ' · 当前' : ''}'),
+                      title: Text(context.tr('版本 {0}{1}', [
+                        snapshot.revisions.length - index,
+                        id == snapshot.current ? context.tr(' · 当前') : ''
+                      ])),
                       subtitle: Text(id),
                       onTap: () => Navigator.pop(context, id));
                 })));
@@ -348,11 +360,14 @@ class _TranscriptionPanelState extends State<TranscriptionPanel> {
   Future<void> export(String format, {bool share = false}) async =>
       guard(() async {
         // Capture the SAVED revision and full content; UI search never supplies export input.
+        final labels = context.l10n.catalog;
         final saved =
             await controller.store.readRevision(widget.recording, revision!.id);
         final current = await controller.library.current(widget.recording.id);
-        final output = exportTranscript(current.title, saved!, format),
-            service = widget.exportService ?? TranscriptExportService();
+        final output =
+                exportTranscript(current.title, saved!, format, labels: labels),
+            service =
+                widget.exportService ?? TranscriptExportService(labels: labels);
         if (share) {
           await service.share(output);
         } else {
@@ -370,8 +385,10 @@ class _TranscriptionPanelState extends State<TranscriptionPanel> {
                 (s['text'] as String)
                     .toLowerCase()
                     .contains(query.toLowerCase()) ||
-                revision!
-                    .speakerName(s['speakerId'])
+                context.l10n
+                    .speaker(revision!.speakers
+                        .where((speaker) => speaker['id'] == s['speakerId'])
+                        .firstOrNull)
                     .toLowerCase()
                     .contains(query.toLowerCase()))
             .toList() ??
@@ -387,21 +404,21 @@ class _TranscriptionPanelState extends State<TranscriptionPanel> {
                   if (widget.audioHeader != null) widget.audioHeader!,
                   Row(children: [
                     Expanded(
-                        child: Text('转写与校对',
+                        child: Text(context.tr('转写与校对'),
                             style: Theme.of(context).textTheme.titleLarge)),
                     IconButton(
-                        tooltip: '转写设置',
+                        tooltip: context.tr('转写设置'),
                         onPressed: editing ? null : configure,
                         icon: const Icon(Icons.settings_outlined))
                   ]),
                   if (controller.settings.error != null)
-                    Text(controller.settings.error!),
+                    Text(context.message(controller.settings.error!)),
                   if (job != null) ...[
-                    Text(jobLabel(job.state)),
+                    Text(context.message(jobLabel(job.state))),
                     if (job.remoteId != null)
-                      SelectableText('任务 ID：${job.remoteId}',
+                      SelectableText(context.tr('任务 ID：{0}', [job.remoteId]),
                           style: Theme.of(context).textTheme.bodySmall),
-                    if (job.notice != null) Text(job.notice!),
+                    if (job.notice != null) Text(context.message(job.notice!)),
                     if (job.state == 'uploading')
                       LinearProgressIndicator(
                           value: controller.progress[widget.recording.id]),
@@ -409,68 +426,77 @@ class _TranscriptionPanelState extends State<TranscriptionPanel> {
                       TextButton(
                           onPressed: () =>
                               controller.pause(widget.recording.id),
-                          child: Text(job.nativeManaged ? '取消本机上传' : '暂停上传')),
+                          child: Text(job.nativeManaged
+                              ? context.tr('取消本机上传')
+                              : context.tr('暂停上传'))),
                     if (job.polling)
                       TextButton(
                           onPressed: busy || editing
                               ? null
                               : () => unawaited(guard(
                                   () => controller.refresh(widget.recording))),
-                          child: const Text('查询任务进度')),
+                          child: Text(context.tr('查询任务进度'))),
                     if (job.state == 'waiting_upload')
                       TextButton(
                           onPressed: () => unawaited(guard(() =>
                               controller.cancelPending(widget.recording))),
-                          child: const Text('取消排队')),
+                          child: Text(context.tr('取消排队'))),
                     if (job.state == 'uploaded' && !job.nativeManaged)
                       TextButton(
                           onPressed: busy || editing
                               ? null
                               : () => unawaited(guard(() => controller
                                   .continueSubmission(widget.recording))),
-                          child: const Text('继续提交已上传音频')),
+                          child: Text(context.tr('继续提交已上传音频'))),
                     if (job.state == 'uncertain')
                       Wrap(spacing: 8, children: [
                         TextButton(
                             onPressed: busy || editing ? null : attach,
-                            child: const Text('关联已有任务')),
+                            child: Text(context.tr('关联已有任务'))),
                         TextButton(
                             onPressed: busy || editing ? null : abandon,
-                            child: const Text('结束本机跟踪'))
+                            child: Text(context.tr('结束本机跟踪')))
                       ]),
                   ],
                   if (error != null ||
                       controller.errors[widget.recording.id] != null)
                     Padding(
                         padding: const EdgeInsets.symmetric(vertical: 8),
-                        child: Text(
-                            error ?? controller.errors[widget.recording.id]!)),
+                        child: Text(context.message(
+                            error ?? controller.errors[widget.recording.id]!))),
                   if (job?.preventsNew != true)
                     FilledButton.icon(
                         onPressed:
                             busy || editing || !widget.canPlay ? null : begin,
                         icon: const Icon(Icons.transcribe),
-                        label: Text(revision == null ? '转写此录音' : '重新转写')),
-                  if (!widget.canPlay) const Text('音频可播放后才能开始转写。'),
+                        label: Text(revision == null
+                            ? context.tr('转写此录音')
+                            : context.tr('重新转写'))),
+                  if (!widget.canPlay) Text(context.tr('音频可播放后才能开始转写。')),
                   if (loading)
                     const Padding(
                         padding: EdgeInsets.all(16),
                         child: CircularProgressIndicator()),
                   if (revision != null) ...[
                     const SizedBox(height: 20),
-                    Text(
-                        'AssemblyAI · ${revision!.transcript['language']} · 已核对 ${revision!.reviewedIds.length}/${revision!.segments.length} 段'),
-                    Text(
-                        '模型：${mapOf(mapOf(revision!.transcript['provenance'])['asr'])['model']}'),
-                    const Text('文字、时间与讲话人仍需人工核对；点击段落时间可回听。'),
+                    Text(context.tr('AssemblyAI · {0} · 已核对 {1}/{2} 段', [
+                      revision!.transcript['language'],
+                      revision!.reviewedIds.length,
+                      revision!.segments.length
+                    ])),
+                    Text(context.tr('模型：{0}', [
+                      mapOf(mapOf(revision!.transcript['provenance'])['asr'])[
+                          'model']
+                    ])),
+                    Text(context.tr('文字、时间与讲话人仍需人工核对；点击段落时间可回听。')),
                     Wrap(spacing: 8, children: [
                       TextButton.icon(
                           onPressed:
                               editing ? null : () => unawaited(guard(history)),
                           icon: const Icon(Icons.history),
-                          label: const Text('历史版本')),
+                          label: Text(context.tr('历史版本'))),
                       PopupMenuButton<String>(
-                          tooltip: '导出全文',
+                          tooltip: context.tr('导出全文'),
                           onSelected: (f) => unawaited(export(f)),
                           itemBuilder: (_) => [
                                 for (final f in [
@@ -482,22 +508,25 @@ class _TranscriptionPanelState extends State<TranscriptionPanel> {
                                 ])
                                   PopupMenuItem(
                                       value: f,
-                                      child: Text('导出 ${f.toUpperCase()} 全文'))
+                                      child: Text(context
+                                          .tr('导出 {0} 全文', [f.toUpperCase()])))
                               ],
-                          child: const Padding(
-                              padding: EdgeInsets.all(12),
-                              child: Text('导出全文'))),
+                          child: Padding(
+                              padding: const EdgeInsets.all(12),
+                              child: Text(context.tr('导出全文')))),
                       PopupMenuButton<String>(
-                          tooltip: '系统分享',
+                          tooltip: context.tr('系统分享'),
                           onSelected: (f) => unawaited(export(f, share: true)),
                           itemBuilder: (_) => [
                                 for (final f in ['md', 'txt', 'json'])
                                   PopupMenuItem(
                                       value: f,
-                                      child: Text('分享 ${f.toUpperCase()} 全文'))
+                                      child: Text(context
+                                          .tr('分享 {0} 全文', [f.toUpperCase()])))
                               ],
-                          child: const Padding(
-                              padding: EdgeInsets.all(12), child: Text('系统分享')))
+                          child: Padding(
+                              padding: const EdgeInsets.all(12),
+                              child: Text(context.tr('系统分享'))))
                     ]),
                     if (historical)
                       Card(
@@ -506,38 +535,38 @@ class _TranscriptionPanelState extends State<TranscriptionPanel> {
                               child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text('正在查看历史版本，只读预览'),
+                                    Text(context.tr('正在查看历史版本，只读预览')),
                                     Wrap(children: [
                                       TextButton(
                                           onPressed: editing ? null : restore,
-                                          child: const Text('恢复为新版本')),
+                                          child: Text(context.tr('恢复为新版本'))),
                                       TextButton(
                                           onPressed: () {
                                             selectedId = null;
                                             unawaited(load());
                                           },
-                                          child: const Text('返回当前版本'))
+                                          child: Text(context.tr('返回当前版本')))
                                     ])
                                   ]))),
                     const SizedBox(height: 12),
                     TextField(
                         onChanged: (v) => setState(() => query = v),
-                        decoration: const InputDecoration(
-                            labelText: '搜索转写内容',
-                            prefixIcon: Icon(Icons.search))),
+                        decoration: InputDecoration(
+                            labelText: context.tr('搜索转写内容'),
+                            prefixIcon: const Icon(Icons.search))),
                     const SizedBox(height: 12),
                     Wrap(spacing: 8, runSpacing: 4, children: [
                       for (final speaker in revision!.speakers)
                         ActionChip(
-                            label: Text(speaker['displayName'] as String),
+                            label: Text(context.l10n.speaker(speaker)),
                             onPressed: historical || editing
                                 ? null
                                 : () => renameSpeaker(speaker))
                     ]),
                     if (rows.isEmpty && query.isNotEmpty)
-                      const Padding(
-                          padding: EdgeInsets.all(16),
-                          child: Text('没有匹配的段落；导出仍包含全部全文')),
+                      Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Text(context.tr('没有匹配的段落；导出仍包含全部全文'))),
                   ],
                 ]);
           }
@@ -547,17 +576,17 @@ class _TranscriptionPanelState extends State<TranscriptionPanel> {
                 children: [
                   if (revision?.untimedText.isNotEmpty == true) ...[
                     const SizedBox(height: 16),
-                    const Text('此结果未提供可靠的段落时间，保留全文供校对。'),
+                    Text(context.tr('此结果未提供可靠的段落时间，保留全文供校对。')),
                     SelectableText(revision!.untimedText),
                     if (!historical)
                       TextButton(
                           onPressed: editing ? null : editUntimed,
-                          child: const Text('校对全文'))
+                          child: Text(context.tr('校对全文')))
                   ],
                   if (revision != null &&
                       revision!.segments.isEmpty &&
                       revision!.untimedText.isEmpty)
-                    const Text('未识别到语音内容。'),
+                    Text(context.tr('未识别到语音内容。')),
                 ]);
           }
           final row = rows[index - 1];
@@ -578,14 +607,17 @@ class _TranscriptionPanelState extends State<TranscriptionPanel> {
                                       : null,
                                   child: Text(
                                       transcriptTime(row['startMs'] as int))),
-                              Text(revision!.speakerName(row['speakerId'])),
+                              Text(context.l10n.speaker(revision!.speakers
+                                  .where((s) => s['id'] == row['speakerId'])
+                                  .firstOrNull)),
                               Text(revision!.reviewedIds.contains(row['id'])
-                                  ? '已核对'
-                                  : '待核对'),
-                              if (row['overlap'] == true) const Text('可能重叠'),
+                                  ? context.tr('已核对')
+                                  : context.tr('待核对')),
+                              if (row['overlap'] == true)
+                                Text(context.tr('可能重叠')),
                               if (!historical)
                                 IconButton(
-                                    tooltip: '校对此段',
+                                    tooltip: context.tr('校对此段'),
                                     onPressed:
                                         editing ? null : () => editSegment(row),
                                     icon: const Icon(Icons.edit_outlined))

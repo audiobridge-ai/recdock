@@ -1,10 +1,24 @@
-# RecDock mobile source
+# RecDock mobile preview
 
 An experimental Flutter Android/iOS client in the [RecDock repository](../README.md). It shares device-protocol and transcript contracts with the [TypeScript workspace](../plaud-web/README.md), but uses its own **AssemblyAI cloud transcription workflow**.
 
 **[Visit RecDock](https://recdock-plaud-web.vercel.app/)** · [Download the Mac app](https://recdock-plaud-web.vercel.app/#download)
 
-The Mac app is the current downloadable product. This mobile directory contains source version **0.3.0**; it is not an announced Android or iOS store release. RecDock is independent of, and not endorsed by, PLAUD.
+The Mac app is the primary downloadable product. This mobile directory contains version **0.3.1** and an experimental Android preview; it is not an Android or iOS store release. RecDock is independent of, and not endorsed by, PLAUD.
+
+## Android preview download
+
+Download the APK from [Mobile 0.3.1 preview 1](https://github.com/audiobridge-ai/recdock/releases/tag/mobile-v0.3.1-preview.1). Verify it with the accompanying `SHA256SUMS.txt`; `build-info.json` records its source commit and digest. Android 6.0 (API 23) or later is required.
+
+This release-mode APK uses a **debug signing certificate** for experimental sideloading. Its signature may differ from earlier test installations; do not uninstall an existing installation without backing up important data. Uninstalling removes local recordings and transcripts. Allow installation from your browser or file manager only when you intend to install this preview.
+
+No installable iOS IPA is included. The iOS source is included, and CI verifies an unsigned Simulator build; physical-iPhone distribution requires an authorized signing/provisioning workflow or future TestFlight/App Store delivery.
+
+## Language
+
+The Android and iOS interfaces support **English** and **Simplified Chinese**. The first launch defaults to English, independently of the system language. Use **Settings → Interface language** to switch; the choice is saved on the device and shared with native transcription notifications.
+
+Recording titles, transcript text, custom speaker names, and recording-language settings are preserved. Text export labels follow the interface language; JSON keeps its original data. Standard system dialogs, including Bluetooth permission prompts and file pickers, follow the operating system’s language. iOS includes English and Chinese Bluetooth purpose descriptions.
 
 ## Implemented workflow
 
@@ -53,7 +67,7 @@ flutter build apk --debug
 flutter build ios --simulator --debug
 ```
 
-Installing on a physical iPhone requires local developer signing; production signing and a mobile release pipeline are not configured.
+Installing on a physical iPhone requires local developer signing. Production signing is not configured. The [mobile workflow](../.github/workflows/mobile.yml) runs analysis/tests and Android/iOS Simulator builds. Pushing a `mobile-v*` tag publishes an Android prerelease only after both platform builds pass. The preview APK uses the existing debug signing configuration; its signature is not guaranteed to match another build. No installable iOS IPA is published.
 
 The iOS app integrates the Swift BLE plugin as a static framework and sets Keychain entitlements for its own bundle ID. Retain the simulator build's signing and entitlements when testing secure storage. `Podfile.lock` uses normal CocoaPods trunk dependencies rather than a temporary checkout.
 
@@ -70,5 +84,7 @@ dart tool/verify_storage.dart
 `RECDOCK_DART` selects the Dart executable used by the protocol checker. These checks run the real TypeScript and Dart implementations and use temporary files for storage validation, without starting a test server.
 
 Native integration entry points are `integration_test/phase1_test.dart`, `phase2_test.dart`, and `phase3_test.dart`. They cover device download/playback, key settings, explicit transcription, task recovery, review, and native sharing. Accounts, keys, audio, and service responses in those tests are synthetic. Production entry points do not import the test modules or expose a demo switch.
+
+Authored mobile messages live in `lib/l10n/messages_en.dart`, with Chinese source templates and English translations. Use `context.tr` for UI copy and explicit arguments for placeholders. Use `context.message` only for authored status/error notices, never for recording titles or transcript content. The localization tests check catalog coverage, placeholder parity, both platform layouts, persistence, and export integrity.
 
 Use English for new documentation and contributor-facing text. Keep cloud-upload consent, account isolation, and unknown-submission handling intact when changing the workflow. Historical acceptance results are recorded in the dated delivery documents linked above.

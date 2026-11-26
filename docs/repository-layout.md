@@ -37,7 +37,7 @@ The root is not an npm or Flutter workspace. Keep each component's lockfile and 
 
 Use **English as the primary language** for new public documentation, code comments, and contributor-facing text. The root README introduces the website and the ordinary user's workflow before development. Component READMEs should clearly state who they are for and link users back to the website and Mac guide.
 
-The desktop workspace, website, and ChatGPT extension support English and Chinese, with English as the default. UI changes need both translations and must preserve recording titles, transcript content, custom speaker names, and user-written prompts. Interface language and transcription language are separate preferences.
+The desktop workspace, website, ChatGPT extension, and Android/iOS mobile interface support English and Chinese, with English as the default. Mobile preferences are stored per installation; native transcription notifications use the same preference. System dialogs follow the operating system language. UI changes need both translations and must preserve recording titles, transcript content, custom speaker names, and user-written prompts. Interface language and transcription language are separate preferences.
 
 Dated design notes and acceptance reports retain their original language and historical context. Link to them for evidence, while keeping current installation and development instructions in the maintained guides.
 
@@ -88,6 +88,6 @@ Use Node.js 22.18–22.x for the shared workspace. `RECDOCK_DART` selects the Da
 
 ## Releases
 
-Components can be built and released separately. The desktop release uses the `desktop-v` tag prefix; `web-v` and `app-v` can identify separate workspace or mobile releases. A mobile source directory does not imply an available public mobile download.
+Components can be built and released separately. The desktop release uses the `desktop-v` tag prefix; `web-v` can identify separate workspace releases. Mobile previews use the `mobile-v` prefix and the [mobile workflow](../.github/workflows/mobile.yml). The workflow validates both native builds and publishes a test-signed Android APK, provenance, and checksums for mobile tags. iOS Simulator compilation does not produce an installable IPA; distribution signing is not configured.
 
 Before linking a new app download from the website, verify the installation asset, checksum, component OS minimum, source commit, third-party notices, and reported validation scope. Keep published candidate and notarization status explicit. See the [desktop build guide](../desktop/README.md#for-developers) and [website guide](../website/README.md).

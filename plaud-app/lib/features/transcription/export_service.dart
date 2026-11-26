@@ -5,12 +5,15 @@ import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'models.dart';
+import '../../l10n/message_catalog.dart';
 import 'transcript_export.dart';
 
 class TranscriptExportService {
+  TranscriptExportService({this.labels = const MessageCatalog()});
+  final MessageCatalog labels;
   Future<bool> save(TranscriptExport output) async =>
       await FilePicker.platform.saveFile(
-          dialogTitle: '导出转写全文',
+          dialogTitle: labels.tr('导出转写全文'),
           fileName: 'transcript.${output.extension}',
           type: FileType.custom,
           allowedExtensions: [output.extension],

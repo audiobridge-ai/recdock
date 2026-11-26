@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 
 import 'app.dart';
+import 'l10n/language_controller.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const RecDockApp());
+  final language = LanguageController();
+  await language.restore();
+  runApp(RecDockApp(language: language));
 }

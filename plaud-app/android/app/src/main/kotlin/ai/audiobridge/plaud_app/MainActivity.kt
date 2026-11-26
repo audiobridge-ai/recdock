@@ -10,6 +10,16 @@ import java.io.File
 class MainActivity: FlutterActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "ai.audiobridge.recdock/localization")
+            .setMethodCallHandler { call, result ->
+                try {
+                    when (call.method) {
+                        "getLanguage" -> result.success(RecDockLocalization.language(this))
+                        "setLanguage" -> { RecDockLocalization.select(this, call.argument<String>("language") ?: ""); result.success(null) }
+                        else -> result.notImplemented()
+                    }
+                } catch (_: Exception) { result.error("LANGUAGE_SAVE_FAILED", "Language preference could not be saved", null) }
+            }
         val vault = SecretVault(this)
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "ai.audiobridge.recdock/secrets")
             .setMethodCallHandler { call, result ->
@@ -65,9 +75,9 @@ class MainActivity: FlutterActivity() {
                             type = mime
                             putExtra(Intent.EXTRA_STREAM, uri)
                             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                            clipData = android.content.ClipData.newRawUri("转写全文", uri)
+                            clipData = android.content.ClipData.newRawUri(RecDockLocalization.text(this@MainActivity, R.string.transcript_full), uri)
                         }
-                        startActivity(Intent.createChooser(intent, "分享转写全文"))
+                        startActivity(Intent.createChooser(intent, RecDockLocalization.text(this, R.string.transcript_share)))
                         result.success(null)
                     } catch (_: Exception) { result.error("EXPORT_SHARE_FAILED", "无法打开系统分享，请重试", null) }
                 }

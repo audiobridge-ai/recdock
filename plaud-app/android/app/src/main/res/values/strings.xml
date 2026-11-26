@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="transcription_results_channel">Transcription results</string>
+    <string name="transcription_work_channel">Background transcription</string>
+    <string name="transcription_complete">Transcription complete</string>
+    <string name="transcription_attention">Transcription needs attention</string>
+    <string name="transcription_open">Open RecDock to check task status</string>
+    <string name="transcription_work_title">RecDock transcription in progress</string>
+    <string name="transcription_work_body">Uploading or syncing cloud progress. Tap to view tasks.</string>
+    <string name="transcript_full">Full transcript</string>
+    <string name="transcript_share">Share full transcript</string>
+</resources>

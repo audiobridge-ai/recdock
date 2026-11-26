@@ -1,7 +1,7 @@
 name: plaud_app
 description: RecDock Android and iOS recording workspace.
 publish_to: none
-version: 0.3.0+3
+version: 0.3.1+4
 
 environment:
   sdk: '>=3.6.2 <4.0.0'
@@ -9,6 +9,8 @@ environment:
 
 dependencies:
   flutter:
+    sdk: flutter
+  flutter_localizations:
     sdk: flutter
   crypto: ^3.0.5
   pointycastle: 4.0.0

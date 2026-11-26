@@ -2,11 +2,21 @@ import Flutter
 import UIKit
 import Security
 
+enum RecDockLanguage {
+  static var selected: String { UserDefaults.standard.string(forKey: "recdock.uiLanguage") == "zh-CN" ? "zh-CN" : "en" }
+  static func text(_ key: String) -> String {
+    let language = selected == "zh-CN" ? "zh-Hans" : "en"
+    guard let path = Bundle.main.path(forResource: language, ofType: "lproj"), let bundle = Bundle(path: path) else { return key }
+    return bundle.localizedString(forKey: key, value: key, table: "Localizable")
+  }
+}
+
 @main
 @objc class AppDelegate: FlutterAppDelegate {
   private var secretChannel: FlutterMethodChannel?
   private var platformChannel: FlutterMethodChannel?
   private var backgroundChannel: FlutterMethodChannel?
+  private var languageChannel: FlutterMethodChannel?
   override func application(
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
@@ -14,6 +24,20 @@ import Security
     LocalTranscriptionQueue.shared.initialize()
     GeneratedPluginRegistrant.register(with: self)
     if let controller = window?.rootViewController as? FlutterViewController {
+      languageChannel = FlutterMethodChannel(name: "ai.audiobridge.recdock/localization", binaryMessenger: controller.binaryMessenger)
+      languageChannel?.setMethodCallHandler { call, result in
+        switch call.method {
+        case "getLanguage": result(RecDockLanguage.selected)
+        case "setLanguage":
+          guard let args = call.arguments as? [String: Any], let language = args["language"] as? String,
+                ["en", "zh-CN"].contains(language) else {
+            result(FlutterError(code: "LANGUAGE_SAVE_FAILED", message: "Invalid interface language", details: nil)); return
+          }
+          UserDefaults.standard.set(language, forKey: "recdock.uiLanguage")
+          result(nil)
+        default: result(FlutterMethodNotImplemented)
+        }
+      }
       let service = (Bundle.main.bundleIdentifier ?? "ai.audiobridge.plaudApp") + ".secrets.v1"
       secretChannel = FlutterMethodChannel(name: "ai.audiobridge.recdock/secrets", binaryMessenger: controller.binaryMessenger)
       secretChannel?.setMethodCallHandler { call, result in
@@ -311,7 +335,7 @@ final class LocalTranscriptionQueue: NSObject, URLSessionDataDelegate, URLSessio
     let r = BGAppRefreshTaskRequest(identifier: Self.refreshID); r.earliestBeginDate = Date().addingTimeInterval(15 * 60); try? BGTaskScheduler.shared.submit(r)
   }
   private func notify(_ id: String, success: Bool) {
-    let c = UNMutableNotificationContent(); c.title = success ? "转写已完成" : "转写需要处理"; c.body = "打开 RecDock 查看任务状态"; c.sound = .default
+    let c = UNMutableNotificationContent(); c.title = RecDockLanguage.text(success ? "transcription_complete" : "transcription_attention"); c.body = RecDockLanguage.text("transcription_open"); c.sound = .default
     UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: id, content: c, trigger: nil))
   }
   func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {

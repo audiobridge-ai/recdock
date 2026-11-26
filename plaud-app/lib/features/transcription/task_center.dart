@@ -1,3 +1,4 @@
+import '../../l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import '../library/recording_store.dart';
 import 'models.dart';
@@ -67,26 +68,29 @@ class _TaskCenterState extends State<TranscriptionTaskCenter> {
         .toList()
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return Scaffold(
-        appBar: AppBar(title: const Text('转写任务'), actions: [
+        appBar: AppBar(title: Text(context.tr('转写任务')), actions: [
           IconButton(
-              tooltip: '刷新任务',
+              tooltip: context.tr('刷新任务'),
               onPressed: reload,
               icon: const Icon(Icons.refresh))
         ]),
         body: Column(children: [
-          const Padding(
-              padding: EdgeInsets.all(20),
-              child: Text(
-                  '按顺序上传，每次上传 1 条，最多 2 条云端任务。可以离开页面或锁屏，已提交的转写继续在云端进行。\n\niOS 的后续查询与排队任务由系统安排，返回 App 会自动同步。完成提醒需要通知权限，提醒可能延迟。')),
+          Padding(
+              padding: const EdgeInsets.all(20),
+              child: Text(context.tr(
+                  '按顺序上传，每次上传 1 条，最多 2 条云端任务。可以离开页面或锁屏，已提交的转写继续在云端进行。\n\niOS 的后续查询与排队任务由系统安排，返回 App 会自动同步。完成提醒需要通知权限，提醒可能延迟。'))),
           if (widget.controller.errors['background'] != null)
             Padding(
                 padding: const EdgeInsets.all(12),
-                child: Text(widget.controller.errors['background']!)),
+                child: Text(
+                    context.message(widget.controller.errors['background']!))),
           if (error != null)
-            Padding(padding: const EdgeInsets.all(12), child: Text(error!)),
+            Padding(
+                padding: const EdgeInsets.all(12),
+                child: Text(context.message(error!))),
           Expanded(
               child: tasks.isEmpty
-                  ? const Center(child: Text('还没有转写任务'))
+                  ? Center(child: Text(context.tr('还没有转写任务')))
                   : RefreshIndicator(
                       onRefresh: reload,
                       child: ListView.separated(
@@ -104,11 +108,14 @@ class _TaskCenterState extends State<TranscriptionTaskCenter> {
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      Text(jobLabel(job.state)),
-                                      if (job.notice != null) Text(job.notice!),
+                                      Text(
+                                          context.message(jobLabel(job.state))),
+                                      if (job.notice != null)
+                                        Text(context.message(job.notice!)),
                                       if (widget.controller.errors[r.id] !=
                                           null)
-                                        Text(widget.controller.errors[r.id]!),
+                                        Text(context.message(
+                                            widget.controller.errors[r.id]!)),
                                       if (job.state == 'uploading')
                                         LinearProgressIndicator(
                                             value: widget
@@ -121,7 +128,7 @@ class _TaskCenterState extends State<TranscriptionTaskCenter> {
                                           'uploaded'
                                         ].contains(job.state)
                                     ? IconButton(
-                                        tooltip: '取消本机任务',
+                                        tooltip: context.tr('取消本机任务'),
                                         onPressed: () => cancel(r),
                                         icon: const Icon(Icons.close))
                                     : const Icon(Icons.chevron_right),

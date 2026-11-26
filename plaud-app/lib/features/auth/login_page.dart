@@ -56,6 +56,7 @@ class _LoginPageState extends State<LoginPage> {
             Text(context.tr('使用设备已绑定的 PLAUD 账号登录。')),
             const SizedBox(height: 28),
             TextField(
+                key: const Key('login-email'),
                 controller: _email,
                 enabled: !widget.auth.busy,
                 keyboardType: TextInputType.emailAddress,

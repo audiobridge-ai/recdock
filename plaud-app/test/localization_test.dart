@@ -189,14 +189,19 @@ void main() {
           '中文');
       await tester.tap(find.text('设备').last);
       await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('登录 PLAUD'));
       await tester.tap(find.text('登录 PLAUD'));
       await tester.pumpAndSettle();
-      await tester.enterText(
-          find.widgetWithText(TextField, '邮箱'), 'person@example.test');
+      final email = find.byKey(const Key('login-email'));
+      await tester.scrollUntilVisible(email, 150,
+          scrollable: find.byType(Scrollable).last);
+      await tester.enterText(email, 'person@example.test');
       await language.select('en');
       await tester.pumpAndSettle();
       expect(find.text('Sign in to PLAUD'), findsOneWidget);
       expect(find.text('person@example.test'), findsOneWidget);
+      await tester.scrollUntilVisible(find.text('Sign in'), 150,
+          scrollable: find.byType(Scrollable).last);
       await tester.tap(find.text('Sign in'));
       await tester.pumpAndSettle();
       expect(find.text('Enter your email and password.'), findsOneWidget);

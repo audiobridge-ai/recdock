@@ -601,26 +601,27 @@ class _WorkspaceState extends State<Workspace> with WidgetsBindingObserver {
       saved: _snapshot?.recordings ?? const []);
 
   Widget _settings() => ListView(padding: const EdgeInsets.all(20), children: [
-        ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.language),
-            title: Text(context.tr('界面语言')),
-            subtitle: Text(context.tr('仅影响界面和导出说明，不改变录音语言或转写内容。')),
-            trailing: DropdownButton<String>(
-                key: const Key('interface-language'),
-                value: LanguageScope.of(context).language,
-                items: const [
-                  DropdownMenuItem(value: 'en', child: Text('English')),
-                  DropdownMenuItem(value: 'zh-CN', child: Text('中文')),
-                ],
-                onChanged: (value) async {
-                  if (value == null) return;
-                  try {
-                    await LanguageScope.of(context).select(value);
-                  } catch (_) {
-                    _notice('语言设置保存失败，请重试');
-                  }
-                })),
+        DropdownButtonFormField<String>(
+            key: const Key('interface-language'),
+            value: LanguageScope.of(context).language,
+            isExpanded: true,
+            decoration: InputDecoration(
+                labelText: context.tr('界面语言'),
+                prefixIcon: const Icon(Icons.language)),
+            items: const [
+              DropdownMenuItem(value: 'en', child: Text('English')),
+              DropdownMenuItem(value: 'zh-CN', child: Text('中文')),
+            ],
+            onChanged: (value) async {
+              if (value == null) return;
+              try {
+                await LanguageScope.of(context).select(value);
+              } catch (_) {
+                _notice('语言设置保存失败，请重试');
+              }
+            }),
+        const SizedBox(height: 8),
+        Text(context.tr('仅影响界面和导出说明，不改变录音语言或转写内容。')),
         const SizedBox(height: 24),
         Text(context.tr('你的录音，保存在本机'),
             style: Theme.of(context).textTheme.headlineSmall),

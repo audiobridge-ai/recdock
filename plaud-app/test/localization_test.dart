@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:plaud_app/app.dart';
@@ -159,63 +158,61 @@ void main() {
     expect(jsonEncode(revision.toJson()), before);
   });
 
-  for (final platform in [TargetPlatform.android, TargetPlatform.iOS]) {
-    testWidgets(
-        '$platform defaults to English on a Chinese system and preserves content while switching',
-        (tester) async {
-      debugDefaultTargetPlatformOverride = platform;
-      addTearDown(() => debugDefaultTargetPlatformOverride = null);
-      tester.platformDispatcher.localeTestValue = const Locale('zh', 'CN');
-      addTearDown(tester.platformDispatcher.clearLocaleTestValue);
-      final preferences = MemoryLanguagePreferences();
-      final language = LanguageController(preferences: preferences);
-      final auth = AuthController(secrets: MemorySecrets());
-      await auth.restore();
-      await tester.pumpWidget(RecDockApp(
-          store: LanguageTestLibrary(), auth: auth, language: language));
-      await tester.pumpAndSettle();
-      expect(find.text(LanguageTestLibrary.recording.title), findsOneWidget);
-      expect(find.text('Import audio'), findsOneWidget);
-      await tester.enterText(find.byType(TextField), '中文');
-      await tester.tap(find.text('Settings').last);
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('interface-language')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('中文').last);
-      await tester.pumpAndSettle();
-      expect(find.text('界面语言'), findsOneWidget);
-      expect(preferences.value, 'zh-CN');
-      await tester.tap(find.text('录音').last);
-      await tester.pumpAndSettle();
-      expect(find.text(LanguageTestLibrary.recording.title), findsOneWidget);
-      expect(tester.widget<TextField>(find.byType(TextField)).controller!.text,
-          '中文');
-      await tester.tap(find.text('设备').last);
-      await tester.pumpAndSettle();
-      await tester.ensureVisible(find.text('登录 PLAUD'));
-      await tester.tap(find.text('登录 PLAUD'));
-      await tester.pumpAndSettle();
-      expect(find.byType(LoginPage), findsOneWidget);
-      final email = find.byKey(const Key('login-email'));
-      await tester.scrollUntilVisible(email, 150,
-          scrollable: find.byType(Scrollable).last);
-      await tester.enterText(email, 'person@example.test');
-      await language.select('en');
-      await tester.pumpAndSettle();
-      expect(find.text('Sign in to PLAUD'), findsOneWidget);
-      expect(find.text('person@example.test'), findsOneWidget);
-      await tester.scrollUntilVisible(find.text('Sign in'), 150,
-          scrollable: find.byType(Scrollable).last);
-      await tester.tap(find.text('Sign in'));
-      await tester.pumpAndSettle();
-      expect(find.text('Enter your email and password.'), findsOneWidget);
-      expect(
-          MaterialLocalizations.of(tester.element(find.byType(Scaffold).last))
-              .backButtonTooltip,
-          'Back');
-      await tester.pumpWidget(const SizedBox.shrink());
-      language.dispose();
-      expect(tester.takeException(), isNull);
-    });
-  }
+  testWidgets(
+      'Defaults to English on a Chinese system and preserves content while switching',
+      (tester) async {
+    tester.platformDispatcher.localeTestValue = const Locale('zh', 'CN');
+    addTearDown(tester.platformDispatcher.clearLocaleTestValue);
+    final preferences = MemoryLanguagePreferences();
+    final language = LanguageController(preferences: preferences);
+    final auth = AuthController(secrets: MemorySecrets());
+    await auth.restore();
+    await tester.pumpWidget(RecDockApp(
+        store: LanguageTestLibrary(), auth: auth, language: language));
+    await tester.pumpAndSettle();
+    expect(find.text(LanguageTestLibrary.recording.title), findsOneWidget);
+    expect(find.text('Import audio'), findsOneWidget);
+    await tester.enterText(find.byType(TextField), '中文');
+    await tester.tap(find.text('Settings').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('interface-language')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('中文').last);
+    await tester.pumpAndSettle();
+    expect(find.text('界面语言'), findsOneWidget);
+    expect(preferences.value, 'zh-CN');
+    await tester.tap(find.text('录音').last);
+    await tester.pumpAndSettle();
+    expect(find.text(LanguageTestLibrary.recording.title), findsOneWidget);
+    expect(tester.widget<TextField>(find.byType(TextField)).controller!.text,
+        '中文');
+    await tester.tap(find.text('设备').last);
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('登录 PLAUD'));
+    await tester.tap(find.text('登录 PLAUD'));
+    await tester.pumpAndSettle();
+    expect(find.byType(LoginPage), findsOneWidget);
+    final email = find.byKey(const Key('login-email'));
+    await tester.scrollUntilVisible(email, 150,
+        scrollable: find.byType(Scrollable).last);
+    await tester.enterText(email, 'person@example.test');
+    await language.select('en');
+    await tester.pumpAndSettle();
+    expect(find.text('Sign in to PLAUD'), findsOneWidget);
+    expect(find.text('person@example.test'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('Sign in'), 150,
+        scrollable: find.byType(Scrollable).last);
+    await tester.tap(find.text('Sign in'));
+    await tester.pumpAndSettle();
+    expect(find.text('Enter your email and password.'), findsOneWidget);
+    expect(
+        MaterialLocalizations.of(tester.element(find.byType(Scaffold).last))
+            .backButtonTooltip,
+        'Back');
+    await tester.pumpWidget(const SizedBox.shrink());
+    language.dispose();
+    expect(tester.takeException(), isNull);
+  },
+      variant:
+          TargetPlatformVariant({TargetPlatform.android, TargetPlatform.iOS}));
 }

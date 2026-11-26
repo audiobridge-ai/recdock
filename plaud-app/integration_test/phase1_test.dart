@@ -1,3 +1,4 @@
+import 'package:plaud_app/l10n/language_controller.dart';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -109,6 +110,7 @@ void main() {
     PeerDevice? peer;
     try {
       await tester.pumpWidget(RecDockApp(
+          language: LanguageController(language: 'zh-CN'),
           store: store,
           auth: auth,
           device: device,
@@ -168,7 +170,10 @@ void main() {
           secrets: secrets);
       final reloaded = RecordingStore(root);
       await tester.pumpWidget(RecDockApp(
-          store: reloaded, auth: offlineAuth, scanner: FixtureScanner()));
+          language: LanguageController(language: 'zh-CN'),
+          store: reloaded,
+          auth: offlineAuth,
+          scanner: FixtureScanner()));
       await until(tester, () => offlineAuth.restored);
       await tester.pumpAndSettle();
       expect(offlineAuth.offline, true);

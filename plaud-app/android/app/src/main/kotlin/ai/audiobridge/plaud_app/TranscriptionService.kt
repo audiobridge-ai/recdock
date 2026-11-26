@@ -188,10 +188,10 @@ object TranscriptionQueue {
     }
     private fun notifyDone(j: JSONObject, success: Boolean) {
         val manager = app.getSystemService(NotificationManager::class.java)
-        if (Build.VERSION.SDK_INT >= 26) manager.createNotificationChannel(NotificationChannel("transcription-results", "转写完成提醒", NotificationManager.IMPORTANCE_DEFAULT))
+        RecDockLocalization.updateChannels(app)
         val open = PendingIntent.getActivity(app, 0, Intent(app, MainActivity::class.java), PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         val n = NotificationCompat.Builder(app, "transcription-results").setSmallIcon(android.R.drawable.ic_menu_info_details)
-            .setContentTitle(if (success) "转写已完成" else "转写需要处理").setContentText("打开 RecDock 查看任务状态")
+            .setContentTitle(RecDockLocalization.text(app, if (success) R.string.transcription_complete else R.string.transcription_attention)).setContentText(RecDockLocalization.text(app, R.string.transcription_open))
             .setAutoCancel(true).setContentIntent(open).build()
         try { manager.notify(j.getString("id").hashCode(), n) } catch (_: SecurityException) { }
     }
@@ -260,17 +260,23 @@ object TranscriptionQueue {
 }
 
 class TranscriptionService : Service() {
+    companion object {
+        var current: TranscriptionService? = null
+            private set
+    }
     private val executor = Executors.newSingleThreadExecutor()
     @Volatile private var stopped = false
     private var started = false
     override fun onBind(intent: Intent?) = null
     override fun onCreate() {
-        super.onCreate(); TranscriptionQueue.initialize(this)
-        val manager = getSystemService(NotificationManager::class.java)
-        if (Build.VERSION.SDK_INT >= 26) manager.createNotificationChannel(NotificationChannel("transcription-work", "后台转写任务", NotificationManager.IMPORTANCE_LOW))
+        super.onCreate(); current = this; TranscriptionQueue.initialize(this)
+        refreshNotification()
+    }
+    fun refreshNotification() {
+        RecDockLocalization.updateChannels(this)
         val open = PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
         startForeground(731, NotificationCompat.Builder(this, "transcription-work").setSmallIcon(android.R.drawable.ic_menu_upload)
-            .setContentTitle("RecDock 转写任务进行中").setContentText("上传或同步云端进度，点击查看任务中心").setContentIntent(open).setOngoing(true).build())
+            .setContentTitle(RecDockLocalization.text(this, R.string.transcription_work_title)).setContentText(RecDockLocalization.text(this, R.string.transcription_work_body)).setContentIntent(open).setOngoing(true).build())
     }
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (!started) { started = true; executor.execute {
@@ -283,5 +289,5 @@ class TranscriptionService : Service() {
         return START_NOT_STICKY
     }
     override fun onTimeout(startId: Int, fgsType: Int) { stopped = true; stopSelf() }
-    override fun onDestroy() { stopped = true; TranscriptionQueue.suspendNetwork(); executor.shutdownNow(); super.onDestroy() }
+    override fun onDestroy() { current = null; stopped = true; TranscriptionQueue.suspendNetwork(); executor.shutdownNow(); super.onDestroy() }
 }

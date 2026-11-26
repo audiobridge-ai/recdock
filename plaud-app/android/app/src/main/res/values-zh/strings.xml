@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="transcription_results_channel">转写完成提醒</string>
+    <string name="transcription_work_channel">后台转写任务</string>
+    <string name="transcription_complete">转写已完成</string>
+    <string name="transcription_attention">转写需要处理</string>
+    <string name="transcription_open">打开 RecDock 查看任务状态</string>
+    <string name="transcription_work_title">RecDock 转写任务进行中</string>
+    <string name="transcription_work_body">上传或同步云端进度，点击查看任务中心</string>
+    <string name="transcript_full">转写全文</string>
+    <string name="transcript_share">分享转写全文</string>
+</resources>

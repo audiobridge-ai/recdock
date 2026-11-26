@@ -1,3 +1,4 @@
+import 'package:plaud_app/l10n/language_controller.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -71,6 +72,7 @@ void main() {
     AuthController auth() => AuthController(
         client: PlaudCloudClient(transport: FixtureCloud()), secrets: secrets);
     Widget app() => RecDockApp(
+        language: LanguageController(language: 'zh-CN'),
         store: library,
         auth: auth(),
         assemblyClient: AssemblyClient(transport: peer));

@@ -110,20 +110,20 @@ void main() {
       await tester.runAsync(
           () => Future<void>.delayed(const Duration(milliseconds: 100)));
       await tester.pumpAndSettle();
-      expect(find.byTooltip('校对此段').evaluate().length, lessThan(20));
+      expect(find.byTooltip('Review segment').evaluate().length, lessThan(20));
       expect(find.text('来源段落-999'), findsNothing);
-      final search = find.widgetWithText(TextField, '搜索转写内容');
+      final search = find.widgetWithText(TextField, 'Search transcript');
       await tester.ensureVisible(search);
       await tester.pumpAndSettle();
       await tester.enterText(search, '来源段落-999');
       await tester.pumpAndSettle();
       expect(find.text('来源段落-0'), findsNothing);
-      final export = find.text('导出全文');
+      final export = find.text('Export full transcript');
       await tester.ensureVisible(export);
       await tester.pumpAndSettle();
       await tester.tap(export);
       await tester.pumpAndSettle();
-      await tester.tap(find.text('导出 MD 全文'));
+      await tester.tap(find.text('Export full MD transcript'));
       await tester.pumpAndSettle();
       await tester.runAsync(
           () => Future<void>.delayed(const Duration(milliseconds: 100)));

@@ -15,17 +15,17 @@ void main() {
   testWidgets('无账号和设备可打开录音库，导航和回收站正常', (tester) async {
     await tester.pumpWidget(RecDockApp(store: EmptyRecordingStore()));
     await tester.pumpAndSettle();
-    expect(find.text('把录音放在一起'), findsOneWidget);
-    expect(find.text('导入音频'), findsOneWidget);
-    await tester.tap(find.byTooltip('回收站'));
+    expect(find.text('All your recordings in one place'), findsOneWidget);
+    expect(find.text('Import audio'), findsOneWidget);
+    await tester.tap(find.byTooltip('Trash'));
     await tester.pumpAndSettle();
-    expect(find.text('回收站是空的'), findsOneWidget);
-    await tester.tap(find.text('设备'));
+    expect(find.text('Trash is empty'), findsOneWidget);
+    await tester.tap(find.text('Devices'));
     await tester.pumpAndSettle();
-    expect(find.text('扫描附近设备'), findsOneWidget);
-    await tester.tap(find.text('设置'));
+    expect(find.text('Scan nearby devices'), findsOneWidget);
+    await tester.tap(find.text('Settings'));
     await tester.pumpAndSettle();
-    expect(find.text('你的录音，保存在本机'), findsOneWidget);
+    expect(find.text('Your recordings, stored locally'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -38,7 +38,7 @@ void main() {
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
     await tester.pumpWidget(RecDockApp(store: EmptyRecordingStore()));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('设置'));
+    await tester.tap(find.text('Settings'));
     await tester.pumpAndSettle();
     expect(find.byType(ListView), findsOneWidget);
     expect(tester.takeException(), isNull);

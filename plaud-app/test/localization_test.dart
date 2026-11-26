@@ -213,6 +213,6 @@ void main() {
     language.dispose();
     expect(tester.takeException(), isNull);
   },
-      variant:
-          TargetPlatformVariant({TargetPlatform.android, TargetPlatform.iOS}));
+      variant: const TargetPlatformVariant(
+          {TargetPlatform.android, TargetPlatform.iOS}));
 }

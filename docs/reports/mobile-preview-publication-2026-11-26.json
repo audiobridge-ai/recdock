@@ -1,0 +1,67 @@
+{
+  "date": "2026-11-26",
+  "sourceCommit": "a228dba68d8444291dbae66923fc6cafcee9e1d8",
+  "releaseTag": "mobile-v0.3.1-preview.1",
+  "releaseId": 459128114,
+  "releaseUrl": "https://github.com/audiobridge-ai/recdock/releases/tag/mobile-v0.3.1-preview.1",
+  "prerelease": true,
+  "workflowRun": "https://github.com/audiobridge-ai/recdock/actions/runs/45781783244",
+  "validation": {
+    "flutterTestsPassed": 74,
+    "androidReleaseBuild": "passed",
+    "iosSimulatorBuild": "passed",
+    "publicationJob": "passed",
+    "downloadedAssetChecksums": "passed",
+    "apkSignatureVerification": "passed",
+    "packagedEnglishChineseNativeStrings": "passed",
+    "physicalDeviceAcceptance": false
+  },
+  "android": {
+    "file": "RecDock-0.3.1-preview.1-android.apk",
+    "bytes": 57133112,
+    "sha256": "c959964140f46632bd830c33625aa07b1a8de24e5137fe47abb9d7ba4c13b28b",
+    "signing": "debug certificate; experimental preview only",
+    "upgradeCompatibility": "Not guaranteed between builds. Export important data before replacing an existing test installation.",
+    "applicationId": "ai.audiobridge.plaud_app",
+    "versionName": "0.3.1",
+    "versionCode": 4,
+    "minSdk": 23,
+    "targetSdk": 35,
+    "abis": [
+      "arm64-v8a",
+      "armeabi-v7a",
+      "x86_64"
+    ],
+    "signingCertificateSha256": "fbd16e64058f9377ff64b12e74257fe3d74e762831abae800cbe89f48642433a",
+    "signatureSchemesVerified": [
+      "v1",
+      "v2"
+    ]
+  },
+  "ios": {
+    "validation": "Unsigned iOS Simulator Debug build",
+    "installableIpa": false,
+    "reason": "No distribution signing identity or provisioning profile is configured."
+  },
+  "assets": [
+    {
+      "name": "build-info.json",
+      "size": 728,
+      "digest": "sha256:74de58fa6cd5e925e7a3f79e949a8f781f323e812ca01519f70d71bf5ec264b5",
+      "browser_download_url": "https://github.com/audiobridge-ai/recdock/releases/download/mobile-v0.3.1-preview.1/build-info.json"
+    },
+    {
+      "name": "RecDock-0.3.1-preview.1-android.apk",
+      "size": 57133112,
+      "digest": "sha256:c959964140f46632bd830c33625aa07b1a8de24e5137fe47abb9d7ba4c13b28b",
+      "browser_download_url": "https://github.com/audiobridge-ai/recdock/releases/download/mobile-v0.3.1-preview.1/RecDock-0.3.1-preview.1-android.apk"
+    },
+    {
+      "name": "SHA256SUMS.txt",
+      "size": 184,
+      "digest": "sha256:2196cd0d13b8a8191169be885ddbcd7592c752ba2509a66348ec6dccec62894e",
+      "browser_download_url": "https://github.com/audiobridge-ai/recdock/releases/download/mobile-v0.3.1-preview.1/SHA256SUMS.txt"
+    }
+  ],
+  "existingDesktopRelease": "Preserved; desktop-v1.0.0-rc.3 was not replaced."
+}

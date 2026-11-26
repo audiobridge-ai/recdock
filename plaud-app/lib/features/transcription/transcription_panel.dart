@@ -475,7 +475,7 @@ class _TranscriptionPanelState extends State<TranscriptionPanel> {
                   if (!widget.canPlay) Text(context.tr('音频可播放后才能开始转写。')),
                   if (loading)
                     const Padding(
-                        padding: const EdgeInsets.all(16),
+                        padding: EdgeInsets.all(16),
                         child: CircularProgressIndicator()),
                   if (revision != null) ...[
                     const SizedBox(height: 20),

@@ -194,22 +194,26 @@ class DevicePanel extends StatelessWidget {
                                 ])),
                         ]),
                         const SizedBox(height: 8),
-                        Text(context.tr('录音状态：{0}', [
-                              {
-                                'unknown': context.tr('未获取'),
-                                'idle': context.tr('空闲'),
-                                'recording': context.tr('正在录音'),
-                                'paused': context.tr('录音暂停'),
-                                'transferring': context.tr('正在传输')
-                              }[device.recording.mode]
-                            ]) +
-                            '${device.recording.durationAt(DateTime.now().millisecondsSinceEpoch) == null ? '' : context.tr(' · {0} 秒', [
-                                    Duration(
-                                            milliseconds: device.recording
-                                                .durationAt(DateTime.now()
-                                                    .millisecondsSinceEpoch)!)
-                                        .inSeconds
-                                  ])}'),
+                        Text(context.tr('录音状态：{0}{1}', [
+                          {
+                            'unknown': context.tr('未获取'),
+                            'idle': context.tr('空闲'),
+                            'recording': context.tr('正在录音'),
+                            'paused': context.tr('录音暂停'),
+                            'transferring': context.tr('正在传输')
+                          }[device.recording.mode],
+                          device.recording.durationAt(
+                                      DateTime.now().millisecondsSinceEpoch) ==
+                                  null
+                              ? ''
+                              : context.tr(' · {0} 秒', [
+                                  Duration(
+                                          milliseconds: device.recording
+                                              .durationAt(DateTime.now()
+                                                  .millisecondsSinceEpoch)!)
+                                      .inSeconds
+                                ]),
+                        ])),
                         Wrap(spacing: 12, children: [
                           TextButton(
                               onPressed: device.busy ? null : refreshStatus,

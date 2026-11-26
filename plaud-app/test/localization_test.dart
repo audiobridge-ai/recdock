@@ -81,9 +81,10 @@ void main() {
             .replaceAll(r'\n', '\n')
             .replaceAll(r"\'", "'")
             .replaceAll(r'\$', r'$');
-        if (RegExp(r'[\u3400-\u9fff]').hasMatch(key))
+        if (RegExp(r'[\u3400-\u9fff]').hasMatch(key)) {
           expect(englishMessages.containsKey(key), isTrue,
               reason: '${file.path}: $key');
+        }
       }
     }
   });

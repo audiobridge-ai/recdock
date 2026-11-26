@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
@@ -39,8 +38,9 @@ class LanguageController extends ChangeNotifier {
   }
 
   Future<void> select(String language) async {
-    if (!['en', 'zh-CN'].contains(language))
+    if (!['en', 'zh-CN'].contains(language)) {
       throw ArgumentError.value(language);
+    }
     if (_saving || language == _language) return;
     _saving = true;
     try {

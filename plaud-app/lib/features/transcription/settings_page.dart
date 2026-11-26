@@ -117,7 +117,8 @@ class _AssemblySettingsPageState extends State<AssemblySettingsPage> {
               DropdownMenuItem(
                   value: 'recommended',
                   child: Text(context.tr('推荐：3.5 Pro / Universal-2'))),
-              DropdownMenuItem(value: 'universal-2', child: Text('Universal-2'))
+              const DropdownMenuItem(
+                  value: 'universal-2', child: Text('Universal-2'))
             ],
             onChanged: busy ? null : (v) => setState(() => model = v!)),
         const SizedBox(height: 16),

@@ -1,5 +1,6 @@
 // English translations for authored RecDock messages. Chinese is the source locale.
 const englishMessages = <String, String>{
+  "录音状态：{0}{1}": "Recording: {0}{1}",
   " · {0} 秒": " · {0} s",
   " · 充电中": " · Charging",
   " · 当前": " · Current",

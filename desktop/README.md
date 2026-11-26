@@ -1,80 +1,119 @@
-# RecDock 桌面工作台
+# RecDock for Mac
 
-独立 Mac 窗口内完成录音导入、处理、回听、校对和导出。当前版本 `1.0.0-rc.3` 为未公证候选版，本机核心流程已通过；干净 Mac 首次安装和桌面设备真机回归仍待补齐。模型继续使用既有固定修订，不包含在 App 安装包中。
+Import recordings, transcribe locally, listen back, review, and export from one Mac app.
 
-## 界面语言 / Interface language
+**[Visit the website](https://recdock-plaud-web.vercel.app/)** · **[Download for Mac](https://recdock-plaud-web.vercel.app/#download)** · [Release notes and checksums](https://github.com/audiobridge-ai/recdock/releases/tag/desktop-v1.0.0-rc.3)
 
-默认使用 English。点击工作台右上角 **中文 / English** 切换；Mac App、官网与扩展弹窗分别记住选择。App 的语言设置同时更新原生菜单。切换会重新载入工作台，后台处理继续；未保存的正文、标题或讲话人修改会先提示，导入、保存和设备传输期间暂缓切换。
+This guide covers the current **1.0.0-rc.3** release candidate. You can use local audio without a PLAUD device or a RecDock account.
 
-English is the default. Use **中文 / English** at the top right to switch. The desktop app, website, and extension popup each remember the choice. Recording content and custom names are preserved. Interface language and transcription language are separate settings.
+## Requirements
 
-## 当前支持范围
+- An **Apple Silicon Mac running macOS 26.2 or later**. Windows, Intel Mac, and older macOS versions are not validated for this package.
+- About **487 MB** for the ZIP and **1.50 GB** for the extracted app. Models need another **3.78 GB**; keep at least **10 GB free**, plus room for recordings and processing.
+- Internet access for initial model downloads and optional PLAUD or ChatGPT features. Prepared models support offline local processing.
+- Edge and a signed-in ChatGPT tab only if you want automatic transcript forwarding.
 
-- Apple Silicon，macOS 26.2 及以上。当前 MLX 等原生组件决定系统下限；Intel、Windows 和较旧 macOS 尚未验收。
-- App 自带 Electron、Node、Python、FFmpeg 和处理依赖，使用者无需安装 Homebrew 或开发工具。
-- 模型约 3.78 GB；请至少预留 10 GB，另为录音和处理临时文件保留空间。安装包大小以最终构建清单为准。
-- 首次模型下载需要联网，并由用户自行完成 pyannote 模型访问授权。准备完成后的本地处理不需要下载令牌。
-- 一键发送到 ChatGPT 需要 Edge、RecDock 扩展和用户已登录的 ChatGPT 页面。不需要 OpenAI API Key。
+The app includes Electron, Node, Python, FFmpeg, and its processing dependencies. Users do not need to install Homebrew or developer tools. Model files are prepared separately and reused across app upgrades.
 
-## 安装与首次使用
+## Install RecDock
 
-安装包与校验值以本仓库 Release 附件为准，选择 `macos-arm64` 并核对同版本 SHA-256。候选版安装 ZIP 约 486 MB，App 展开约 1.495 GB；模型另行准备。
+1. Follow the [website download link](https://recdock-plaud-web.vercel.app/#download) to GitHub Releases. Choose `RecDock-1.0.0-rc.3-macos-arm64.zip`; download the matching `SHA256SUMS.txt` if you want to verify it with `shasum -a 256 -c SHA256SUMS.txt` in the download folder.
+2. Quit any previous RecDock app or local companion and let its service stop. Fully extract the ZIP, then move `RecDock.app` to Applications.
+3. Open the app. This candidate has a **local ad-hoc signature and no Developer ID certificate or Apple notarization**. If macOS cannot verify the developer, check the file's source and checksum and consult [Apple's opening instructions](https://support.apple.com/en-us/102445). On systems that permit it, the app-specific approval is under **System Settings → Privacy & Security → Open Anyway** after attempting to open the app.
+4. Continue with **Models & App** to prepare the models, then import a short recording to try the workflow.
 
-1. 退出旧 RecDock 助手，等待任务停止。打开 DMG，将 RecDock 拖入“应用程序”；ZIP 则先完整解压再移动 App。
-2. 打开 RecDock。本候选版使用本地 ad-hoc 签名，**没有 Developer ID 和 Apple 公证**。若系统提示无法验证开发者，确认来源和校验值后，由你在“系统设置 → 隐私与安全性”中选择该 App 的“仍要打开”。具体可用操作取决于系统与设备管理策略。[Apple 官方说明](https://support.apple.com/zh-cn/102445)
-3. 若显示“已损坏”、签名校验失败或保护软件终止进程，保留提示并反馈；重新核对文件完整性。公司管理设备需要遵循管理员策略。
-4. 在“模型与应用”中选择已有 RecDock 模型目录，或打开模型许可页面、自行授权后保存下载令牌，再下载、完整校验并检查环境。
-5. 导入测试音频，选择“导入并转写”，或先“仅导入音频”再开始处理。
+If macOS reports a damaged app, signature validation fails, or protection software stops a process, retain the exact message and check the download's integrity. Managed computers remain subject to their administrator's policy.
 
-模型下载令牌使用 macOS 钥匙串支持的加密机制保存。拒绝钥匙串请求后，已有完整模型仍可使用；仅保存或读取已存下载令牌会需要该授权。状态查询不读取钥匙串。应用不使用下载令牌调用转写模型，不向项目维护者发送令牌。
+## Prepare your models
 
-## 一键发送到 ChatGPT
+Open **Models & App** at the top of the workspace. Choose an existing RecDock model folder, or use **Download / Resume**, then **Verify all files** and **Check environment**.
 
-在“模型与应用”中复制浏览器扩展目录，在 Edge 的 `edge://extensions/` 启用开发人员模式并“加载解压缩的扩展”。首次安装需要你允许 Native Messaging 权限。只保留一个 RecDock 扩展启用，更新 App 后在扩展页重新加载。
+The app uses pinned revisions of Qwen3 ASR 1.7B, Qwen3 ForcedAligner 0.6B, and pyannote Community 1. For the speaker model, follow **Model access and first download**, accept the upstream Hugging Face access conditions yourself, and save an authorized download token.
 
-打开并登录 ChatGPT，然后在 RecDock“设置”中“连接现有 ChatGPT 页面”。录音详情的发送按钮发送当前已保存版本的**完整 Markdown 转写和提示词**，不会上传音频。你可以先导出检查全文。发送上限为 8 MiB；搜索、讲话人筛选和分页不会截断附件。
+The download token is encrypted using macOS secure storage. Saving or reading it may require Keychain access; status checks do not read the token. Existing complete models can be selected and verified without that authorization and continue to work offline. The token is for model downloads, not transcription requests.
 
-已有草稿或附件时停止自动操作；提交结果未知时只核对状态，不自动重发。已确认提交的同一版本再次点击会打开原对话。ChatGPT 页面、登录状态和配额变化可能影响转发，可以导出完整 Markdown 手动上传。
+## Import, transcribe, review, and export
 
-## 数据、升级与退出
+1. Set the transcription language under **Settings → Transcription settings** before starting new processing. Local imports do not require PLAUD sign-in.
+2. Choose **Import → Import & transcribe**, or **Import audio only** to save a recording for later.
+3. Select a completed recording. Click a timestamp to hear the original audio, edit a paragraph or speaker name, and save your changes.
+4. Use **Export text** for the complete selected version. Markdown, TXT, JSON, SRT, and VTT are available; original audio can be saved separately.
 
-资料位于 `~/Library/Application Support/RecDock`，已有模型目录选择保持不变。关闭窗口后任务继续；明确退出停止处理，重开恢复尚未完成的任务。不要同时运行旧助手和桌面版。替换 App 不会删除录音、修订和模型；重要资料应另行备份。
+Machine drafts and historical revisions are retained. Treat automatic text, speaker labels, and timing as a draft to review against the audio.
 
-“打开资料目录”可查看本机文件。`desktop/startup-status.json` 记录最近启动失败；“检查环境”后 `desktop/environment-status.json` 记录工具退出码与 GPU 检查。诊断保存在本机，反馈问题前自行检查内容；无需提供录音、账号缓存或下载令牌。
+## Send a transcript to ChatGPT
 
-## 开发与构建
+Follow the [extension guide](../plaud-web/extensions/chatgpt-bridge/README.md) to load the app-provided extension in Edge. Then open ChatGPT, sign in, and choose **Settings → ChatGPT forwarding → Connect an existing ChatGPT tab** in RecDock.
 
-先按 [旧助手构建说明](../companion-macos/README.md) 准备自带运行时，安装 `plaud-web` 的锁定依赖，再安装桌面依赖：
+**Send to ChatGPT** attaches the complete saved Markdown transcript and your prompt. It does not upload audio; filters and pagination do not shorten the document. Automatic forwarding supports up to **8 MiB** per transcript. No OpenAI API key is required for this workflow.
+
+The extension preserves new drafts and attachments already in ChatGPT. If submission is uncertain, it checks the page rather than automatically sending again. A confirmed submission can be reopened through its original conversation. Export the Markdown file for manual upload if ChatGPT sign-in, quotas, or page changes prevent automatic forwarding.
+
+## Interface language
+
+English is the default. Use **中文 / English** at the top right to change it. The app remembers your choice and updates its native menus. The website and extension popup have their own remembered choices.
+
+Changing the interface language reloads the workspace while the processing service continues. The selected recording is restored. Unsaved transcript, title, or speaker edits require confirmation; active imports, saves, device operations, and audio exports defer switching. Save any edited ChatGPT prompt first.
+
+Interface language does not change transcription language or translate your recording content and custom names. macOS system dialogs follow the operating system's language settings.
+
+## Data, updates, and background tasks
+
+App data lives in `~/Library/Application Support/RecDock`. Your selected model folder remains separate from the app. Replacing the app preserves recordings, revisions, and model files; back up important recordings separately.
+
+Closing the window keeps processing running. Quitting stops the service and preserves task records so unfinished work can resume after reopening. Run one RecDock app or companion at a time.
+
+Use **Models & App → Open data folder** to inspect local files. Startup failures are recorded in `desktop/startup-status.json`; an environment check writes `desktop/environment-status.json`. Review diagnostic files before sharing them. Public issue reports do not need recordings, account caches, or download tokens.
+
+If startup stays on account recovery or an empty library, try **View → Reload**. An initialization delay was observed during candidate testing; a later full app restart restored the library automatically. Report persistent failures with the app version, macOS version, and error details.
+
+After updating the app, reload its existing RecDock extension at `edge://extensions/`. Keep one RecDock extension enabled.
+
+## Device support and release status
+
+PLAUD connectivity is optional and targets already-bound devices. The implementation covers account access, authentication, device status, and recording retrieval. First-time binding, recording control, device-file deletion, OTA, and Wi-Fi transfers are outside the current scope.
+
+Local import, real model processing, review, export, and ChatGPT forwarding have been tested on the development Mac. **Clean-Mac installation and desktop PLAUD hardware regression remain unverified.** Consult the [RC3 validation report](../docs/reports/desktop-rc3-i18n-2026-11-12.md) for the exact checks and known limits.
+
+## For developers
+
+Run the commands below from the repository root on a Mac with Xcode Command Line Tools. Use **Node.js 22.18–22.x** and prepare a self-contained runtime through the [companion packaging guide](../companion-macos/README.md#build-a-local-runtime-package), or supply an existing verified runtime app.
+
+### Install development dependencies
 
 ```sh
-cd desktop
-npm ci
-npm test
-cd ..
+npm --prefix plaud-web ci
+npm --prefix desktop ci
+npm --prefix desktop test
 python3 desktop/scripts/build_icons.py
 ```
 
-从官方固定源码构建无外部编解码库的 FFmpeg 8.0.1，脚本核验下载文件哈希并记录构建参数：
+### Develop with the fixed launcher
+
+Reuse an existing runtime and the installed Electron SDK:
+
+```sh
+python3 desktop/scripts/prepare_dev.py --resources /path/to/RecDock.app/Contents/Resources
+```
+
+Open the generated `desktop/vendor/RecDock Dev.app`. Source edits do not require re-signing the runtime. The launcher is rebuilt only with `--refresh-launcher`; the first setup needs the Electron SDK or a verified archive supplied with `--electron-zip`.
+
+### Build an installation archive
+
+Build the audio tools from the pinned FFmpeg 8.0.1 source. The script verifies the source archive and records build parameters.
 
 ```sh
 curl -fL https://github.com/FFmpeg/FFmpeg/archive/refs/tags/n8.0.1.tar.gz -o /tmp/recdock-ffmpeg-n8.0.1.tar.gz
 python3 desktop/scripts/build_audio_tools.py --source /tmp/recdock-ffmpeg-n8.0.1.tar.gz --output desktop/vendor/audio-tools
 ```
 
-打包时传入已验证运行时、官方 Electron 45.3.1 ARM64 ZIP，以及上一步共享音频工具：
+Supply the verified runtime app, the official Electron 45.3.1 ARM64 ZIP, and the shared audio tools:
 
 ```sh
-python3 desktop/scripts/build_macos.py --runtime-app /path/to/verified/RecDock.app --electron-zip /path/to/electron-v45.3.1-darwin-arm64.zip --audio-tools desktop/vendor/audio-tools --output desktop/dist/rc-build --archive --dmg
+python3 desktop/scripts/build_macos.py --runtime-app /path/to/verified/RecDock.app --electron-zip /path/to/electron-v45.3.1-darwin-arm64.zip --audio-tools desktop/vendor/audio-tools --output desktop/dist/rc-build --archive
+python3 desktop/scripts/inspect_package.py desktop/dist/rc-build
 ```
 
-使用新的输出目录；脚本拒绝覆盖既有构建。官方 Electron SHA-256 固定在构建脚本中。默认 ad-hoc 签名，不执行公证，也不把本地签名表述为 Apple 认证。最终大小、原生组件实际系统下限和附件 SHA-256 写入 `build-result.json`。
+Use a fresh output directory; the script refuses to overwrite a build. The Electron archive checksum is pinned in the build script. Packaging defaults to ad-hoc signing without notarization. `build-result.json` records the actual component OS minimum, package size, and archive checksum. The current public candidate is a ZIP.
 
-普通源码联调通过固定 Electron 开发入口完成，避免每次修改源码都重签运行时：
-
-```sh
-python3 desktop/scripts/prepare_dev.py --resources /path/to/RecDock.app/Contents/Resources
-```
-
-然后打开生成的 `desktop/vendor/RecDock Dev.app`。只有显式 `--refresh-launcher` 才重建启动器。首次准备需要已有 Electron SDK，或传入经过核验的 `--electron-zip`。
-
-自有代码采用 [MIT](../LICENSE)。模型、Chromium/Electron、Python 包和 FFmpeg 各自保留上游许可；包内 `Contents/Resources/Licenses` 提供声明与 FFmpeg 对应源码及重建入口。模型不随源码仓库或安装包再分发。
+RecDock's code uses the [MIT License](../LICENSE). Models, Electron/Chromium, Python packages, and FFmpeg retain their upstream licenses. The app includes notices, matching FFmpeg source, and rebuild instructions under `Contents/Resources/Licenses`; model weights are not redistributed in the repository or app archive.

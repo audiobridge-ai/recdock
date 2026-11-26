@@ -1,35 +1,79 @@
-# RecDock Web
+# RecDock shared workspace
 
-Web client of the [RecDock repository](../README.md). The Android / iOS client lives in [`../plaud-app/`](../plaud-app/README.md).
+The TypeScript workspace, local Node API, Python audio worker, and device protocol implementation shared with the RecDock Mac app.
 
-A local recording workspace for importing, transcribing and reviewing audio, with optional PLAUD Bluetooth device support.
+**[Visit the official website](https://recdock-plaud-web.vercel.app/)** · **[Download for Mac](https://recdock-plaud-web.vercel.app/#download)** · [Mac user guide](../desktop/README.md)
 
-RecDock is an independent client. It is not affiliated with or endorsed by PLAUD.
+For everyday use, start with the packaged Mac app. This directory is the source and development entry point for the workspace. The public website presents the product and links to downloads; it does not run the local audio pipeline in your browser.
 
-## Features
+RecDock is an independent project, not affiliated with or endorsed by PLAUD.
 
-- A persistent recording workspace that works without a PLAUD account; login and connection use a modal, with settings in a side drawer.
-- Email/password sign-in or user-initiated import of an official Web session.
-- Account-bound device cards and a single Connect action that prepares authentication material automatically.
-- Automatic protocol detection from advertisements, with a macOS bridge when browser advertisement access is unavailable.
-- Device overview with recording status, battery and storage information.
-- A unified recording list, Bluetooth downloads, cancellation and same-page resume.
-- Explicit **Download and transcribe** or **Download Ogg only** actions; discovering or importing a file does not implicitly start transcription.
-- Offline local transcription, speaker labels, timestamp playback, revision editing and automatic readable transcript files.
-- One-click ChatGPT delivery of the complete saved transcript through an optional Edge extension, with one bound tab, submission receipts and duplicate protection.
-- Local recovery of supported encrypted recordings and WAV or Ogg export.
-- Remembered login, device mappings and export preferences, with historical account keys retained for older recordings.
+## Workspace capabilities
 
-## Requirements
+- Import, play, review, and export local recordings without a PLAUD account.
+- Explicitly choose **Import & transcribe** or **Import audio only**; importing alone does not imply approval to start transcription.
+- Run local transcription, timestamp alignment, speaker labeling, and revision editing with prepared models.
+- Retain original audio, machine drafts, saved edits, and complete readable transcript files.
+- Optionally sign in to PLAUD, match an already-bound device, authenticate, inspect status, and retrieve recordings over Bluetooth.
+- Send a complete saved transcript to ChatGPT through the [optional Edge extension](extensions/chatgpt-bridge/README.md).
+- Use English by default or switch to Chinese; interface language is separate from transcription language.
 
-- Node.js **22.18 or newer** and npm.
-- A modern browser opened through `localhost` or HTTPS. Device connections require desktop Chrome or Edge with Web Bluetooth.
-- For device connections: a supported recorder bound to your own PLAUD account.
-- **macOS** for the native broadcast and persistent-cache helpers, with Swift available through Xcode or Apple's Command Line Tools.
+Automatic transcripts need review. Device and firmware support have separate validation limits from local audio processing.
 
-The complete workflow currently targets macOS. Support depends on the device and firmware. Automatic preparation covers legacy protocols and protocol 20; protocol 30 currently requires existing ECC credentials through advanced diagnostics.
+## Local audio and device recordings
 
-## Quick start
+In a running workspace, choose **Import** to import and transcribe or save audio for later. Preparing models and FFmpeg is required for processing, but a PLAUD account and Bluetooth are not required for local imports.
+
+For device recordings:
+
+1. Disconnect the recorder from the phone app and keep it awake near the computer.
+2. Choose **Connect PLAUD**, then sign in with the bound account or import an official web session.
+3. Select the account's device and connect. Confirm the browser device selection and any system Bluetooth request.
+4. Choose a recording and select **Download & transcribe** or **Download Ogg only**. Set the transcription language in **Settings** before starting.
+
+Account device cards show bound devices, not a live nearby-device scan. The browser's initial device-selection permission is still required. Automatic preparation supports legacy protocols and protocol 20; protocol 30 currently requires existing ECC credentials through advanced diagnostics.
+
+The personal recording library remains available when you sign out. Account recordings and device authentication material follow the corresponding PLAUD account scope.
+
+## Recordings and exports
+
+In source development, the default library is `<project>/.local-audio/library/`. Each recording has its own folder, with separate personal/account scopes. `RECDOCK_LIBRARY_DIR` overrides the root; the packaged Mac app sets its own Application Support directory.
+
+A completed transcript and each saved revision write `exports/latest.md`, `latest.txt`, `latest.json`, and revision-specific copies. The workspace displays the storage path. Markdown, TXT, JSON, SRT, and VTT exports cover the complete selected version.
+
+Device downloads keep Ogg alongside the original device bytes. Supported encrypted PLAUD recordings are decrypted locally using the corresponding account RSA material. Already-downloaded files can be recovered under **Settings → Recover original device files**. Unsupported layouts or missing original keys leave the source file intact.
+
+Local imports accept files up to **1 GiB** and audio up to **6 hours**. Bluetooth source downloads are limited to **256 MiB**. Optional browser WAV conversion accepts compressed inputs up to **16 MiB**; retaining Ogg does not require that conversion.
+
+Incomplete Bluetooth transfers remain in page memory for the same account, device, and file. Cancellation or reconnection may reuse them; closing or refreshing the page discards that partial progress. Recording or pause defers file synchronization.
+
+## Accounts and local data
+
+The local API restricts account and credential-preparation requests to official PLAUD HTTPS hosts. Device authentication and recording transfer run locally after preparation. Local audio processing stays on the computer. Explicit ChatGPT forwarding uploads the complete saved transcript and prompt, without audio.
+
+Passwords clear after submission and are not saved. Remembered PLAUD authorization and historical recording keys use an AES-256-GCM file cache with a random local key in a directory restricted to the current OS user. That account-cache key is not independently protected by Keychain. The packaged app's optional Hugging Face download token uses a separate [secure-storage mechanism](../desktop/README.md#prepare-your-models).
+
+The source workspace retains the legacy account-cache location at `~/Library/Application Support/PLAUD BLE Workspace/`. The desktop app uses its own `~/Library/Application Support/RecDock` data directory. Browser IndexedDB stores non-secret device mappings and export preferences.
+
+Ordinary logout removes saved sign-in authorization while retaining historical recording keys. Explicit account-data removal deletes the saved material and may prevent decryption of old recordings. Imported web sessions can require another import when they expire; supported password sessions can refresh their tokens. Offline recovery only reuses previously verified accounts and complete cached device material.
+
+## ChatGPT forwarding
+
+Follow the [extension guide](extensions/chatgpt-bridge/README.md). In source development, the browser bridge accepts the top-level **http://localhost:5173/** workspace. The packaged Mac app uses Native Messaging instead.
+
+Forwarding attaches the full saved Markdown version, including paragraphs hidden by search or pagination. A confirmed task reopens its existing conversation. New drafts, quota issues, login requirements, or page changes pause the task; an uncertain submission is not automatically sent again. The automatic forwarding limit is **8 MiB**, with manual export available for larger transcripts.
+
+## For developers
+
+### Requirements
+
+- **Node.js 22.18–22.x** and npm, matching `package.json`.
+- A modern browser over localhost or HTTPS; device connections require desktop Chrome or Edge with Web Bluetooth.
+- macOS and Swift tools for native broadcast detection and the persistent-cache helper.
+- FFmpeg and the prepared Python/model environment for audio processing; see the [development notes](docs/development.md).
+- For a device connection, a supported recorder already bound to your own PLAUD account.
+
+### Run locally
 
 ```sh
 git clone https://github.com/audiobridge-ai/recdock.git
@@ -38,59 +82,13 @@ npm ci
 npm run dev
 ```
 
-Open **http://localhost:5173/** and keep the local server running.
+Open <http://localhost:5173/> and keep the server running. The development and preview commands provide the loopback local API; a standalone `dist/` folder contains only the frontend and cannot provide account APIs, native helpers, or local processing by itself.
 
-For the new **online workspace + local companion** development preview, see [connection and Vercel deployment](docs/online-companion.md). `npm run companion` starts a loopback-only service with origin-bound, one-time-code pairing. `npm run dev:web` / `npm run preview:web` serve only the frontend. A downloadable installer and automatic model preparation are planned separately.
+The earlier online-workspace/local-companion architecture is retained for development. `npm run companion` starts the loopback service, while `npm run dev:web` and `npm run preview:web` serve only the frontend. Website authorization and fallback pairing are described in [online companion development](docs/online-companion.md). Ordinary Mac users should use the [desktop app](../desktop/README.md).
 
-For local audio, open **Import** and choose **Import and transcribe** or **Import audio only** directly in the workspace. A PLAUD login and Bluetooth are not required. Model preparation and FFmpeg are required for processing; see the [development notes](docs/development.md).
+### Validate and contribute
 
-For PLAUD recordings:
-
-1. Disconnect the recorder from the phone App and keep it awake near the computer.
-2. Click **Connect PLAUD** in the workspace header. Sign in or import an official Web session in the dialog.
-3. Select your device and click **Connect**. Confirm the browser device selection and any system Bluetooth permission request.
-4. RecDock identifies the protocol and prepares authentication automatically. Closing the dialog leaves the connection running; **Cancel connection** is a separate action.
-5. Select a device recording in the left list and choose **Download and transcribe** or **Download Ogg only**. Set the shared transcription language under **Settings** before starting.
-
-The workspace retains its selected recording, playback and unsaved transcript edits while dialogs open. Open **Filter** for source and processing-state filters, reset, or the recycle bin. Local imports always go into the personal library. The list also includes the signed-in account's library; logging out hides that account's private recordings while keeping personal recordings available. Connected-device actions and account actions are in the header menus; settings and diagnostics open in a drawer.
-
-The device cards show account-bound devices, not a live list of nearby Bluetooth devices. The browser's initial device-selection permission is still required. Previously authorized devices can be reused when the browser supports it.
-
-## Login and local data
-
-The local server sends account and material-preparation requests to restricted official PLAUD HTTPS API hosts. After preparation, BLE authentication, state updates and recording transfers operate locally. Recording audio is processed on your computer. When you explicitly send a transcript to ChatGPT, its complete text and your prompt are uploaded to the ChatGPT page you connected; audio is not included.
-
-Passwords are cleared after submission and are not persisted. With remembered login enabled, access/refresh tokens and authentication material are saved in an AES-256-GCM file cache. The random encryption key and encrypted data are stored in a directory restricted to the current OS user; the key is not protected independently by Keychain. RecDock does not request a Keychain password.
-
-For compatibility with existing installations, the macOS cache lives at:
-
-```text
-~/Library/Application Support/PLAUD BLE Workspace/
-```
-
-Browser IndexedDB stores only non-secret device mappings and export preferences. Ordinary logout removes saved login authorization while retaining historical recording keys. The explicit local-data removal action deletes that account's saved material and may prevent recovery of older recordings.
-
-Cloud-session restoration verifies the account identity. Supported password sessions can refresh their tokens; imported Web sessions may require another import when their token expires. A bounded offline restore can reuse previously verified account and complete device material. It does not replace initial account authentication.
-
-## Recordings and export
-
-Device downloads keep **Ogg** by default, alongside the original device bytes. They are saved by the local service into `<project>/.local-audio/library/`, with separate personal/account scopes and one folder per recording. Set `RECDOCK_LIBRARY_DIR` to override the root. The first start copies and hash-verifies an existing legacy library without deleting the old directory.
-
-Transcription starts only when explicitly selected. A completed transcript, and every saved edit, writes `exports/latest.md`, `latest.txt`, `latest.json` and revision-specific copies in the same recording folder. The workspace displays the folder path.
-
-Supported `PLAUD.AI` recordings are decrypted locally with the corresponding account RSA material before audio packaging. Existing downloaded files can be recovered under **Settings → Device original-file recovery**.
-
-Unknown formats, unsupported multistream layouts or unavailable original keys leave the original `.bin` intact. Renaming a file extension does not convert it. Optional browser WAV conversion accepts compressed inputs up to 16 MiB; this limit does not apply to retaining Ogg. Bluetooth downloads have a 256 MiB source-file limit. Library imports accept up to 1 GiB per uploaded file and audio up to 6 hours; those project limits still apply to Ogg.
-
-Incomplete transfers are kept only in page memory for the same account, device and file. They may resume after cancellation or disconnection, but refreshing or closing the page discards them. Recording or pause defers file synchronization.
-
-## Send a transcript to ChatGPT
-
-Load the [optional Edge extension](extensions/chatgpt-bridge/README.md), refresh the workspace, then connect an existing signed-in ChatGPT tab under **Settings → ChatGPT delivery**. Select a completed transcript and click **Send to ChatGPT**. The full saved version is attached as Markdown, including paragraphs hidden by search or pagination. Save or cancel pending edits first.
-
-The extension reuses one bound tab and processes one task at a time. A confirmed submission becomes **Open ChatGPT**; repeated clicks open the existing conversation. Consecutive sends create a new conversation in that same tab. Exact text left over from a confirmed submission is cleared through the native editor; new user drafts are preserved. Login, unknown drafts, upload limits or page changes pause the task and offer manual export. The automation limit is 8 MiB per Markdown file; files are never truncated. A submission receipt does not imply cross-conversation retrieval or memory storage. See the [delivery notes](docs/chatgpt-forward-delivery.md).
-
-## Development
+From `plaud-web/`:
 
 ```sh
 npm test
@@ -98,16 +96,14 @@ npm run build
 npm run preview
 ```
 
-The current JavaScript suite passes **347 tests**, TypeScript checks and a production build on this Mac. The unchanged Python worker baseline previously passed **39 tests**. FFmpeg is required for the recording library and local processing, and also enables independent audio interoperability tests. See [development notes](docs/development.md) and [protocol notes](docs/protocol.md).
+For language validation, run `node scripts/i18n/check.mjs` from the repository root. Follow the [development notes](docs/development.md) for worker tests and [protocol notes](docs/protocol.md) for device changes. Cross-platform contract checks are documented in the [mobile guide](../plaud-app/README.md#validation).
 
-Both development and preview commands provide the loopback-only local API. The `dist/` directory contains only the frontend; hosting it alone does not provide login, native detection or the local-cache API. Keep the same `localhost` origin to preserve browser device permissions and mappings.
+Use English for new public documentation and contributor-facing text. UI changes must include English and Chinese copy and preserve user content. Historical verification counts belong in dated reports; use the current test commands to validate your checkout. The [RC3 report](../docs/reports/desktop-rc3-i18n-2026-11-12.md) records the published candidate's checks.
 
-`localhost refused to connect` usually means the local server is not running or the address/port is incorrect. The UI and API share the same origin; disabling browser CORS protections is unnecessary.
+Keep the same localhost origin to retain browser device permissions and mappings. If localhost refuses the connection, check that the server is running and the address is correct. The UI and API share an origin; browser security settings do not need to be disabled.
 
-## Scope
-
-RecDock currently focuses on already-bound devices, status monitoring, recording retrieval, local transcript review and optional ChatGPT delivery. It does not implement new-device binding, unbinding, recording start/stop control, device-file deletion, OTA or Wi-Fi transfers. Device and firmware behavior still needs hardware validation beyond the synthetic test suite.
+The device implementation does not cover new-device binding, unbinding, recording start/stop, device-file deletion, OTA, or Wi-Fi transfers. Hardware behavior still requires validation beyond synthetic tests.
 
 ## License
 
-[MIT](../LICENSE)
+[MIT](../LICENSE). Model and third-party component licenses apply separately.

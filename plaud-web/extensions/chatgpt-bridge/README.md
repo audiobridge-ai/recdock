@@ -1,35 +1,63 @@
 # RecDock → ChatGPT
 
-Edge / Chromium Manifest V3 扩展。把工作台中**当前已保存版本的完整转写**作为 Markdown 附件发送到 ChatGPT；不上传音频，不读取 cookie 或 token，不使用 ChatGPT 私有接口。
+An optional Edge / Chromium Manifest V3 extension that sends the **complete saved version** of a RecDock transcript to ChatGPT as a Markdown attachment. It sends your prompt and transcript, without audio, and uses the visible ChatGPT page rather than private ChatGPT APIs. It does not read cookies or account tokens.
 
-## 安装与连接
+**[Visit RecDock](https://recdock-plaud-web.vercel.app/)** · [Download the Mac app](https://recdock-plaud-web.vercel.app/#download) · [Mac app guide](../../../desktop/README.md)
 
-1. 运行 RecDock，使用 `http://localhost:5173/`。
-2. 打开 `edge://extensions/`，启用开发人员模式，点击“加载解压缩的扩展”，选择本目录。
-3. 刷新工作台。保留一个已登录、处于聊天模式的 `https://chatgpt.com/` 标签页。
-4. 在工作台的“设置 → ChatGPT 转发”中点击“连接现有 ChatGPT 页面”。
-5. 打开一条已转写的录音，点击“发送到 ChatGPT”。需要先保存或取消正在编辑的段落。
+## Set up the Mac app
 
-扩展优先复用此前绑定的页面，其次选择已打开的活动 ChatGPT 页面。绑定后只操作该标签页，**不创建任何 ChatGPT 标签页**。每次新稿件在同一标签页的新对话中发送；已提交的版本只打开已有对话。关闭目标标签页后，需要先打开 ChatGPT 并重新连接。更换 ChatGPT 账号时也必须重新连接；这里的连接记录不代表对 ChatGPT 账号身份的认证。
+1. Open RecDock and choose **Models & App → Open extension folder**. Use the directory provided by the app so it matches your installed version.
+2. Open `edge://extensions/` in Edge, turn on **Developer mode**, choose **Load unpacked**, and select that directory. Allow its native messaging permission when requested.
+3. Open <https://chatgpt.com/>, sign in to your intended account, and leave a tab in chat mode.
+4. In RecDock, choose **Settings → ChatGPT forwarding → Connect an existing ChatGPT tab**. You can also connect from the extension's toolbar popup.
+5. Open a completed recording, save or cancel pending edits, and click **Send to ChatGPT**.
 
-## 状态与恢复
+Keep one RecDock extension enabled. After updating the app, click **Reload** on the existing extension in Edge. If you use the source workspace, refresh that page too.
 
-- 附件上传完成且发送按钮可用后才提交。每个任务仅点击一次发送。
-- 用户消息中存在完整提示词、同一条消息有实际附件卡、页面产生 `/c/...` 对话链接，三者同时确认后才显示“已提交”。这只确认本次对话提交，不代表资料空间、跨对话检索或记忆写入成功。
-- 页面已有用户新写的草稿、附件、正在回复，或登录、上传配额、网页结构异常时暂停，不覆盖用户内容。
-- 从 0.1.2 起，连续发送优先使用页面原生“新聊天”，固定复用同一个标签页。首页恢复的文本若与当前连接下**已确认提交**的某次发送内容完全一致，且没有新附件，扩展通过原生编辑器输入事件清理该残留。手动新建聊天时也适用；有新增文字、附件或未确认的发送记录时保留草稿并暂停。资料空间是否已有文件不会触发去重或暂停。
-- 提交前暂停的任务，可以在处理原有草稿后由用户主动重试。已经尝试提交、但结果不明确的任务只核对页面，不再次上传或点击发送。
-- 刷新工作台可从本地发送记录和扩展回执恢复状态。服务进程/扩展中断时不自动恢复未知的提交操作。
-- 自动转发上限 **8 MiB UTF-8 Markdown 全文**，超过时明确拒绝，不截断；仍可在工作台导出后手动上传。ChatGPT 的账号配额、文件限制和可用功能另行适用。
+English is the default popup language; **中文 / English** switches and remembers the choice. Open the popup through Edge's toolbar.
 
-## 权限和数据
+## What gets sent
 
-只申请 `storage`、`scripting` 及 `http://localhost/*`、`https://chatgpt.com/*` 的主机访问。主机权限覆盖 localhost；内容脚本和后台还会额外验证来源必须为 `http://localhost:5173` 的顶层页面。其他端口、域名、子框架不能发起任务。
+The attachment contains the complete saved transcript version, including paragraphs hidden by search, filters, or pagination. The extension reuses one connected tab and starts a new conversation there for each new submission. It does not create ChatGPT tabs.
 
-本地服务在录音的 `chatgpt/transfers.json` 保存稿件快照、哈希、版本和回执，沿用个人/PLAUD 账号资料隔离。扩展持久保存任务元数据与提示词；临时文件包仅进入 `storage.session`，任务停止/完成后删除。扩展只接收工作台明确提供的该次稿件，没有任意本机路径读取能力。
+A confirmed submission can be reopened in its existing conversation. If the connected tab closes, open ChatGPT and reconnect. Reconnect after changing ChatGPT accounts as well; the tab connection does not authenticate the account's identity for you.
 
-修改扩展源码后，在扩展管理页点击本扩展的“重新加载”，并刷新工作台。网页适配集中在 `page-adapter.mjs`；DOM 变化应优先暂停并调整适配，不能回退到调用私有上传接口。
+Automatic forwarding is limited to **8 MiB of UTF-8 Markdown**. Larger transcripts are rejected without truncation; export them for manual upload. ChatGPT's own quotas, file limits, and feature availability also apply.
 
-ChatGPT 单页导航会保留隐藏编辑器和隐藏消息副本。文件输入必须取自当前可见编辑器所属表单，并支持 Markdown；图片专用输入框不能用于此上传。提交回执只使用可见消息及其附件卡，隐藏副本不能覆盖实际结果。
+## Submission status and recovery
 
-0.1.3 支持 ChatGPT 为重名文件添加 `(1)`、` (2)` 等数字后缀，仍要求原文件名中的版本与内容哈希完全匹配。核对未提交任务时，若当前提示词和唯一附件均匹配且已经就绪，会直接接续提交，不重新上传。准备页面、附件就绪、提交确认分别有约 30 / 90 / 60 秒的等待截止时间，并展示具体等待阶段；结果未知的提交仍不自动重发。
+- Submission begins only after the attachment is ready and the send button is available. Each task attempts the send action once.
+- Confirmation requires a visible user message with the complete prompt, an attachment card in that same message, and a `/c/...` conversation URL. This confirms submission to that conversation, not cross-conversation retrieval or memory storage.
+- A new draft, existing attachment, active reply, login requirement, quota issue, or unexpected page structure pauses automation and preserves user content.
+- A paused task that has not attempted submission can be retried explicitly after resolving the page state. A task with an uncertain submission only reconciles the page; it does not automatically upload or send again.
+- Workspace records and extension receipts can restore status after a refresh. An unknown submission is not automatically resumed after a process or extension restart.
+
+When ChatGPT restores text that exactly matches a previously confirmed submission for the current connection, with no new attachment, the extension clears that leftover text through native editor events. New or changed drafts, attachments, and unconfirmed submissions are preserved. An existing file elsewhere in ChatGPT does not trigger deduplication.
+
+Attachment matching accepts ChatGPT's numeric duplicate-name suffixes while still checking the version and content hash embedded in the original filename. An exact ready attachment may be reused for an explicit retry. Preparation, attachment readiness, and submission confirmation have separate time limits of approximately 30, 90, and 60 seconds.
+
+## For developers
+
+### Source workspace setup
+
+Run RecDock's local workspace at **http://localhost:5173/**, load this directory as an unpacked extension, and refresh the workspace. Then follow the same tab connection steps above. Other ports and hosted websites are not accepted by the workspace content script.
+
+The Mac app uses **Native Messaging** instead of the localhost content script. Its packaged bridge connects the app to the same extension without granting the public marketing website access to your desktop library.
+
+### Permissions and stored data
+
+The manifest requests `storage`, `scripting`, and `nativeMessaging`, with host access to `http://localhost/*` and `https://chatgpt.com/*`. The content script and background handler further restrict browser workspace requests to the top-level `http://localhost:5173` page. The native host restricts access to the configured RecDock extension ID; see [native host registration](../../../desktop/src/native-registration.cjs).
+
+The local service saves transcript snapshots, hashes, versions, and receipts in the recording's `chatgpt/transfers.json`, preserving the personal/PLAUD account scope. The extension stores task metadata and prompts persistently; temporary transcript packets use `storage.session` and are removed after completion or stopping. The extension receives explicitly provided transcript packets and cannot read arbitrary local paths.
+
+### Page adaptation and validation
+
+ChatGPT page adaptation is concentrated in `page-adapter.mjs`. After source edits, reload the extension and refresh the source workspace. Changes to the page should pause the workflow until the adapter is updated; do not fall back to private upload APIs.
+
+ChatGPT navigation can retain hidden editors and message copies. Select the file input belonging to the visible editor form and require Markdown support. Image-only inputs and hidden message copies cannot establish an upload or submission receipt.
+
+Run the extension and forwarding checks from `plaud-web/` after installing its dependencies:
+
+```sh
+node --experimental-strip-types --test tests/chatgpt-extension.test.ts tests/chatgpt-forward.test.ts tests/chatgpt-forwarder.test.ts tests/i18n.test.ts
+```

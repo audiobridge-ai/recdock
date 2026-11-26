@@ -1,52 +1,93 @@
-# 仓库组织与跨端开发
+# Repository and cross-platform development
 
-## 目录与命令范围
+For product information and downloads, start with the [RecDock website](https://recdock-plaud-web.vercel.app/). The [Mac user guide](../desktop/README.md) covers the downloadable app. This document is for contributors working across repository components.
+
+## Components and command scope
 
 ```text
 recdock/
-├── README.md
+├── README.md                  # Product overview and user entry point
 ├── LICENSE
-├── docs/                     # 仓库共用说明与跨端资料入口
+├── desktop/                   # Mac app, model setup, native bridge, packaging
+├── website/                   # Public product website and download links
+├── companion-macos/           # Earlier web companion and runtime packaging
+├── docs/                      # Shared architecture and validation reports
 ├── plaud-web/
-│   ├── src/                  # Web 界面与 TypeScript 协议实现
-│   ├── server/               # 本地 API、认证与录音服务
-│   ├── contracts/            # 音频 JSON Schema 与合成契约样例
-│   ├── worker/               # Python 本地转写
-│   ├── extensions/           # 可选 Edge 扩展
-│   └── docs/                 # Web 专属设计、开发与历史报告
+│   ├── src/                   # Workspace UI and TypeScript device protocols
+│   ├── server/                # Local account, recording, and transcript APIs
+│   ├── contracts/             # Audio schemas and synthetic contract fixtures
+│   ├── worker/                # Python local audio processing
+│   ├── extensions/            # Optional ChatGPT browser extension
+│   └── docs/                  # Workspace engineering notes and reports
 └── plaud-app/
-    ├── lib/                  # Flutter 界面、领域逻辑与 Dart 协议实现
-    ├── android/              # Android 原生工程
-    ├── ios/                  # iOS 原生工程
-    ├── test/                 # Flutter 测试与合成样例
-    ├── integration_test/     # 平台集成验收入口
-    ├── tool/                 # 跨端协议、契约和存储校验
-    └── docs/                 # App 专属方案与交付记录
+    ├── lib/                   # Flutter UI, domain logic, and Dart protocols
+    ├── android/               # Android native project
+    ├── ios/                   # iOS native project
+    ├── test/                  # Flutter tests and synthetic fixtures
+    ├── integration_test/      # Native integration acceptance entry points
+    ├── tool/                  # Protocol, transcript, and storage checks
+    └── docs/                  # Mobile designs and delivery reports
 ```
 
-Web 的 npm 命令、Python Worker 命令在 `plaud-web/` 执行；Flutter、Dart 和 App 工具命令在 `plaud-app/` 执行。仓库根目录不创建额外的 npm 或 Flutter workspace。两端各自保留锁文件，独立构建与发布。
+The Mac app uses the shared workspace and local Python processing. The experimental Flutter client has a separate AssemblyAI cloud transcription workflow. The website is a static product entry point and does not process recordings.
 
-## 共用协议与契约
+The root is not an npm or Flutter workspace. Keep each component's lockfile and build commands in its own scope. The root README uses `npm --prefix` to make those scopes explicit. Python worker commands run from `plaud-web/` as documented in its development guide; Flutter, Dart, and mobile verification commands run from `plaud-app/`.
 
-- [设备协议说明](../plaud-web/docs/protocol.md)：两端设备协议迁移和实现的参考。
-- [录音与转写数据契约](../plaud-web/docs/audio-contracts.md)：音频对象、时间与版本语义。
-- [音频 JSON Schema](../plaud-web/contracts/audio-v1.schema.json) 和 [合成样例](../plaud-web/contracts/fixtures/)：现有 Node / Python 校验器读取的位置。
-- [App 协议对照](../plaud-app/tool/verify_protocol_parity.mjs)：对同批报文执行真实 TypeScript 和 Dart 实现。
-- [App 转写契约对照](../plaud-app/tool/verify_transcript_contract.mjs)：用 Web 校验器验证 App 生成的转写对象。
+## Documentation and interface language
 
-协议和契约暂时保留在 Web 已有路径，避免改变运行时加载位置。修改协议、字段或时间语义时，同一提交中更新相关实现与样例，并执行跨端校验。界面和平台实现仍分别维护。
+Use **English as the primary language** for new public documentation, code comments, and contributor-facing text. The root README introduces the website and the ordinary user's workflow before development. Component READMEs should clearly state who they are for and link users back to the website and Mac guide.
 
-## 本地数据与迁移
+The desktop workspace, website, and ChatGPT extension support English and Chinese, with English as the default. UI changes need both translations and must preserve recording titles, transcript content, custom speaker names, and user-written prompts. Interface language and transcription language are separate preferences.
 
-此次调整将原 Web 仓库内容移至 `plaud-web/`，并将 Flutter 工程纳入 `plaud-app/`，保留原 Web Git 历史。历史阶段报告保留在对应项目中；早期报告的仓库根路径应按当时目录理解。
+Dated design notes and acceptance reports retain their original language and historical context. Link to them for evidence, while keeping current installation and development instructions in the maintained guides.
 
-Web 默认录音库现在位于 `plaud-web/.local-audio/library/`；本机已有 `.local-audio/` 随 Web 目录一起移动，仍由忽略规则排除。`RECDOCK_LIBRARY_DIR` 显式配置的外部目录由开发者按实际路径维护。macOS 用户缓存和手机 App 沙盒目录不受仓库重组影响。
+## Shared protocols and contracts
 
-新 checkout 运行 `npm ci`、`flutter pub get` 恢复依赖；iOS 使用 `ios/Runner.xcworkspace`。移动本机 checkout 后也应重新运行 `flutter pub get`，刷新包含绝对路径的生成配置。Pods、SDK 路径、签名私钥、用户缓存、音频、模型和构建包均不入库。测试中的合成协议材料用于离线验证，不是用户账号或真实录音。
+- [Device protocol notes](../plaud-web/docs/protocol.md): reference for TypeScript/Dart protocol implementations.
+- [Audio and transcript contracts](../plaud-web/docs/audio-contracts.md): recording objects, timestamps, revisions, and export semantics.
+- [Audio JSON Schema](../plaud-web/contracts/audio-v1.schema.json) and [synthetic fixtures](../plaud-web/contracts/fixtures/): inputs read by the current Node/Python validators.
+- [Mobile protocol parity checker](../plaud-app/tool/verify_protocol_parity.mjs): executes both implementations against the same packets.
+- [Mobile transcript contract checker](../plaud-app/tool/verify_transcript_contract.mjs): validates mobile-generated objects with the shared schema.
 
-## 验证与发版
+Keep these assets at their existing paths unless a coordinated migration updates every consumer. Changes to protocol fields or timestamp semantics must update the relevant implementations and fixtures together and run cross-platform checks. UI and native platform implementations remain independently maintained.
 
-- Web 变更：在 `plaud-web/` 运行 `npm test`、`npm run build`；Worker 变更按 Web 开发说明运行 Python 测试。
-- App 变更：在 `plaud-app/` 运行 `flutter analyze`、`flutter test`，涉及原生桥接时补充对应平台构建和集成验证。
-- 协议与数据契约变更：在 `plaud-app/` 运行两个 Node 对照脚本；存储变更运行 `dart tool/verify_storage.dart`。
-- 两端可独立发版，建议标签前缀为 `web-v`、`app-v`。后续 CI 可按目录选择任务；协议和契约修改需同时覆盖跨端校验。
+## Local data and checkout changes
+
+The source workspace's default recording library is `plaud-web/.local-audio/library/`; `RECDOCK_LIBRARY_DIR` may select an external directory. Models, recordings, and other local data are ignored by Git. The packaged Mac app uses `~/Library/Application Support/RecDock` and its selected external model folder. Mobile recordings live in each app's sandbox.
+
+The earlier monorepo migration moved the original web repository into `plaud-web/` and added `plaud-app/`, preserving the web Git history. Historical reports may refer to the root layout that existed when they were written. The [migration record](reports/monorepo-2026-11-09.md) explains that transition.
+
+After a fresh checkout, install each component's dependencies. After moving a Flutter checkout, run `flutter pub get` again to refresh generated absolute paths. Use `plaud-app/ios/Runner.xcworkspace` for the iOS project.
+
+Do not commit Pods, SDK paths, signing keys, account caches, recordings, model weights, or generated installation bundles. Synthetic fixtures are for offline validation and do not contain production accounts or real user recordings.
+
+## Validation
+
+From the repository root, after installing the relevant npm dependencies:
+
+```sh
+npm --prefix plaud-web test
+npm --prefix plaud-web run build
+npm --prefix desktop test
+node scripts/i18n/check.mjs
+```
+
+Worker changes also require the Python checks in the [workspace development guide](../plaud-web/docs/development.md). Native bridge changes need the corresponding platform build and integration checks.
+
+For mobile work, run from `plaud-app/` after installing Flutter dependencies and the sibling workspace's npm dependencies:
+
+```sh
+flutter analyze
+flutter test
+node --experimental-strip-types tool/verify_protocol_parity.mjs
+node --experimental-strip-types tool/verify_transcript_contract.mjs
+dart tool/verify_storage.dart
+```
+
+Use Node.js 22.18–22.x for the shared workspace. `RECDOCK_DART` selects the Dart executable for Node-based parity checks. Protocol and transcript-contract changes must validate both implementations; storage changes need the real-file storage checker.
+
+## Releases
+
+Components can be built and released separately. The desktop release uses the `desktop-v` tag prefix; `web-v` and `app-v` can identify separate workspace or mobile releases. A mobile source directory does not imply an available public mobile download.
+
+Before linking a new app download from the website, verify the installation asset, checksum, component OS minimum, source commit, third-party notices, and reported validation scope. Keep published candidate and notarization status explicit. See the [desktop build guide](../desktop/README.md#for-developers) and [website guide](../website/README.md).

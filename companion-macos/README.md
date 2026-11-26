@@ -1,31 +1,36 @@
-# RecDock Mac 本地助手
+# RecDock Mac local companion
 
-阶段目标：Apple Silicon Mac 上无需终端，安装助手、授权网页、准备模型并完成本地转写。
+This directory retains the earlier **website + local companion** architecture and the self-contained runtime packaging used by desktop development.
 
-本轮用户已确认先交付本地可测试版本。Developer ID 签名、公证和公开分发待开发者账号开通后完成，ad-hoc 安装包仅用于本地测试。
+**[Visit the RecDock website](https://recdock-plaud-web.vercel.app/)** · **[Download the current Mac app](https://recdock-plaud-web.vercel.app/#download)** · [Mac user guide](../desktop/README.md)
 
-实现约束：
+The current user path is the standalone Mac app. The companion is a separate development component; do not run it alongside the desktop app against the same recording library.
 
-- AppKit 菜单栏 App 管理用户级 Node 服务；关闭窗口或网页不停止任务，明确退出助手才停止服务。
-- Node、Python、生产依赖、FFmpeg/FFprobe 和原生辅助程序随 App 打包；运行时不依赖 Homebrew、Xcode 或源码目录。
-- 录音、模型、配置与授权放在用户 Application Support，不写入 App bundle；默认不移动既有资料。
-- 固定 HTTPS 工作台来源；网页用 PKCE 请求授权，用户在本机窗口确认。仅持久化访问令牌的摘要，可查看和撤销授权。配对码保留为备用入口。
-- 开机启动使用 SMAppService，由用户在界面选择。
-- 模型采用现有固定版本与完整性校验；需 Hugging Face 许可的模型提供官方授权入口，不代替用户接受条款。
-- 公网签名版必须通过 Developer ID、Hardened Runtime、公证和分发验收；本地 ad-hoc 包不冒充签名分发版。
+## Architecture
 
-验收必须区分自动检查、真实 GPU 推理、浏览器与本机授权、干净 Mac 安装，以及公开分发资格。任一尚未完成时，在报告中列出，不以模拟代替。
+- An AppKit menu-bar app manages a per-user Node service. Closing its window or the website keeps tasks running; explicitly quitting stops the service.
+- Node, Python, production dependencies, FFmpeg/FFprobe, and native helpers are bundled. The target computer does not need Homebrew, Xcode, or a source checkout.
+- Recordings, models, settings, and authorization live in Application Support, outside the app bundle. Existing source-workspace data is retained at its original location.
+- Approved HTTPS workspace origins request authorization with PKCE and a local user confirmation. Only authorization-token digests are persisted; access can be inspected and revoked. One-time pairing codes remain a fallback.
+- Login-at-start uses SMAppService and is selected by the user.
+- Models use pinned revisions and integrity checks. The companion links to upstream access conditions for users to accept themselves.
 
-## 本地测试构建
+Validation distinguishes automated checks, real GPU inference, browser-to-companion authorization, clean-Mac installation, and public distribution. Report unverified areas explicitly.
 
-在已准备好原项目依赖、独立 Python 3.11 和模型依赖的 Apple Silicon Mac 上运行：
+## Build a local runtime package
+
+Use an Apple Silicon Mac with Xcode Command Line Tools, the shared workspace dependencies, a standalone Python 3.11 installation, the model-processing dependencies, and audio tools already prepared. See the [workspace development notes](../plaud-web/docs/development.md) for the audio environment.
+
+From the repository root:
 
 ```sh
-python3 scripts/build.py --output dist/local-test
+python3 companion-macos/scripts/build.py --output companion-macos/dist/local-test
 ```
 
-构建脚本生成自带运行时的 `RecDock.app` 和 ZIP。目标机器不需要 Node、Python、Homebrew 或 Xcode；模型不打入安装包，可在助手中选择已有目录或下载。动态库决定最低 macOS 版本，具体值写在 `build-result.json` 中。当前测试机的 FFmpeg 依赖要求 macOS 26.2。
+The script creates a self-contained `RecDock.app` and ZIP. Models are not included; users can select an existing model folder or download them through the companion. Bundled native libraries determine the actual macOS minimum, which is recorded in `build-result.json`. The existing runtime baseline requires macOS 26.2.
 
-新构建使用新的输出目录，不覆盖已有安装包。公开签名版可通过 `--identity 'Developer ID Application: …' --notary-profile <已在钥匙串配置的名称>` 启用签名和公证。公开分发前仍需完成第三方组件对应源码与许可义务、较低系统版本兼容性和干净 Mac 验收。
+Use a new output directory for each build. Local ad-hoc helper packages are development artifacts. Developer ID signing and notarization can be requested with `--identity 'Developer ID Application: …' --notary-profile <profile-name>` when the required developer credentials exist. Distribution still requires matching third-party source and notices, compatibility checks, and clean-Mac validation. The current public desktop candidate's status is documented separately in the [Mac guide](../desktop/README.md).
 
-录音、授权和设置默认保存在 `~/Library/Application Support/RecDock`，不随 App 升级或移除自动删除。源码版原有录音保留在原位置。关闭登录后自动启动并退出助手后，可以移除 App；资料目录由用户自行保留或管理。
+## Data and removal
+
+The companion stores recordings, authorization, and settings under `~/Library/Application Support/RecDock`. App replacement or removal does not automatically delete that directory. Disable login-at-start and quit the companion before removing the app; retain or manage the data directory separately.

@@ -20,7 +20,7 @@ void main() {
     await tester.tap(find.byTooltip('Trash'));
     await tester.pumpAndSettle();
     expect(find.text('Trash is empty'), findsOneWidget);
-    await tester.tap(find.text('Devices'));
+    await tester.tap(find.text('Device'));
     await tester.pumpAndSettle();
     expect(find.text('Scan nearby devices'), findsOneWidget);
     await tester.tap(find.text('Settings'));

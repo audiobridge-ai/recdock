@@ -657,7 +657,7 @@ class _WorkspaceState extends State<Workspace> with WidgetsBindingObserver {
 Widget _empty(IconData icon, String title,
         {String? subtitle, Widget? action}) =>
     Center(
-        child: Padding(
+        child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
             child: Column(mainAxisSize: MainAxisSize.min, children: [
               Icon(icon, size: 48, color: Colors.black54),

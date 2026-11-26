@@ -12,6 +12,8 @@ import 'package:plaud_app/features/transcription/transcript_export.dart';
 import 'package:plaud_app/l10n/language_controller.dart';
 import 'package:plaud_app/l10n/message_catalog.dart';
 import 'package:plaud_app/l10n/messages_en.dart';
+import 'package:plaud_app/features/auth/login_page.dart';
+import 'helpers/peer.dart';
 
 class MemoryLanguagePreferences implements LanguagePreferences {
   String? value;
@@ -167,7 +169,8 @@ void main() {
       addTearDown(tester.platformDispatcher.clearLocaleTestValue);
       final preferences = MemoryLanguagePreferences();
       final language = LanguageController(preferences: preferences);
-      final auth = AuthController();
+      final auth = AuthController(secrets: MemorySecrets());
+      await auth.restore();
       await tester.pumpWidget(RecDockApp(
           store: LanguageTestLibrary(), auth: auth, language: language));
       await tester.pumpAndSettle();
@@ -192,6 +195,7 @@ void main() {
       await tester.ensureVisible(find.text('登录 PLAUD'));
       await tester.tap(find.text('登录 PLAUD'));
       await tester.pumpAndSettle();
+      expect(find.byType(LoginPage), findsOneWidget);
       final email = find.byKey(const Key('login-email'));
       await tester.scrollUntilVisible(email, 150,
           scrollable: find.byType(Scrollable).last);
